@@ -1,0 +1,29 @@
+dataset_dir: ./dataset
+sample_dataset_dir: ./sample_dataset
+results_dir: ./results
+log_dir: ./logs
+
+
+result_file: result.yaml
+
+feature:
+  n_mels: 64
+  frames : 5
+  n_fft: 1024
+  hop_length: 512
+  win_length: 400
+  sr: 16000
+  dt: 10.0
+  n_classes: 4
+  power: 2.0
+
+fit:
+  compile:
+    optimizer : adam
+    loss : mean_squared_error
+  epochs : 50
+  batch_size : 512
+  shuffle : True
+  test_size: 0.2 
+  valid_size : 0.1
+  verbose : 1
