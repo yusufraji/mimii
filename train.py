@@ -2,15 +2,15 @@ import time
 from pathlib import Path
 import argparse
 from scipy.io import wavfile
-from tensorflow.python.keras.layers.convolutional import Conv2D
-from tensorflow.python.util.tf_decorator import make_decorator
+from silence_tensorflow import silence_tensorflow
+silence_tensorflow()
 
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
@@ -57,8 +57,8 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         for i, (path, label) in enumerate(zip(wav_paths, labels)):
             rate, wav = wavfile.read(path)
-
-            X[i,] = wav[:,self.n_channels].reshape(-1, 1)
+            
+            X[i,] = wav[:,:self.n_channels]
             Y[i,] = to_categorical(label, num_classes=self.n_classes)
 
         return X, Y
@@ -128,12 +128,12 @@ def train(args):
     model = models[args.model]
     
     model.summary()
-    with open(f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel_report.txt','w') as fh:
+    with open(f'{cur_dir}/{config["results_dir"]}/{model.name}_report.txt','w') as fh:
         # Pass the file handle in as a lambda function to make it callable
         model.summary(print_fn=lambda x: fh.write(x + '\n'))
 
-    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel.png', show_shapes=True)
-    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel.pdf', show_shapes=True)
+    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}.png', show_shapes=True)
+    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}.pdf', show_shapes=True)
 
     # Callbacks
     # initialize tqdm callback with default parameters
@@ -152,7 +152,7 @@ def train(args):
                         callbacks=[tqdm_cb, checkpoint_cb, early_stopping_cb, tensorboard_cb])
 
     # plots the accuracy and loss for against epochs
-    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_1channel_history')
+    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_history')
 
     device.reset()    
 
