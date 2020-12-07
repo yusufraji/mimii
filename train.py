@@ -1,7 +1,9 @@
 import time
 from pathlib import Path
-
+import argparse
 from scipy.io import wavfile
+from tensorflow.python.keras.layers.convolutional import Conv2D
+from tensorflow.python.util.tf_decorator import make_decorator
 
 from tqdm import tqdm
 import numpy as np
@@ -12,10 +14,11 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
-# tf.config.experimental.list_physical_devices('GPU')
+tf.config.experimental.list_physical_devices('GPU')
 import tensorflow_addons as tfa
 from tensorflow.keras.utils import to_categorical, plot_model
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard
+from numba import cuda 
 
 from models import MyConv2D
 from utils import fetch_dataset, save_fig, model_metrics, plot_history, fetch_dataset
@@ -78,18 +81,18 @@ def train_test_valid(data, test_size=0.2, valid_size=0.1):
 
     return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test
 
-def train():
-    pass
-
-if __name__ == "__main__":
-
-
-
+def train(args):
+    """
+    docstring
+    """
     cur_dir = Path.cwd()
-    
+    device = cuda.get_current_device()
     # load config yaml
     with open("config.yaml") as stream:
         config = yaml.safe_load(stream)
+
+    models = {'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])}
+    assert args.model in models.keys(), f'{args.model} is unavailable.'
 
     # create directories
     Path.mkdir(cur_dir / config["results_dir"], exist_ok=True)
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     results = {}
 
     # fetch dataset
-    if 'dataset_df.csv' in (cur_dir / config["dataset_dir"]).iterdir():
+    if 'dataset_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
         data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')
     else:
         data = fetch_dataset()
@@ -121,8 +124,8 @@ if __name__ == "__main__":
                         n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"])
 
     # model
-    model = MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"])
-
+    model = models[args.model]
+    
     model.summary()
 
     plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}.png', show_shapes=True)
@@ -146,3 +149,14 @@ if __name__ == "__main__":
 
     # plots the accuracy and loss for against epochs
     plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}-history')
+
+    device.reset()    
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Malfunctioning Industrial Machine Investigation and Inspection (MIMII). Classification/Anomaly Detection')
+    parser.add_argument('--model', type=str, default='myconv2d',
+                        help='model to train. (myconv1d, myconv2d, mylstm, myconv1dae, myconv2dae')
+    args, _ = parser.parse_known_args()
+
+    train(args)
+

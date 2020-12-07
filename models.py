@@ -10,8 +10,8 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard
 
 
-def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0):
-    input_shape = (int(SR*DT), 1)
+def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0, N_CHANNELS=8):
+    input_shape = (int(SR*DT), N_CHANNELS)
     i = get_melspectrogram_layer(input_shape=input_shape,
                                  n_mels=128,
                                  pad_end=True,
@@ -32,6 +32,9 @@ def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0):
     x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_3')(x)
     x = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_4')(x)
     x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_4')(x)
+    x = Conv2D(64, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_5')(x)
+    x = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_5')(x)
+    x = Conv2D(64, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_6')(x)
     x = Flatten(name='flatten')(x)
     x = Dropout(rate=0.2, name='dropout')(x)
     x = Dense(64, activation='relu', activity_regularizer=l2(0.001), name='dense')(x)
@@ -43,25 +46,25 @@ def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0):
     return model
 
 
-def LSTM(parameter_list):
+def MyLSTM(parameter_list):
     """
     docstring
     """
     pass
 
-def Conv1D(parameter_list):
+def MyConv1D(parameter_list):
     """
     docstring
     """
     pass
 
-def Conv2DAE(parameter_list):
+def MyConv2DAE(parameter_list):
     """
     docstring
     """
     pass
 
-def Conv1DAE(parameter_list):
+def MyConv1DAE(parameter_list):
     """
     docstring
     """
