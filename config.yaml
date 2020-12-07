@@ -1,7 +1,7 @@
 dataset_dir: ./dataset
 sample_dataset_dir: ./sample_dataset
-results_dir: ./results
-log_dir: ./logs
+results_dir: results
+log_dir: logs
 
 
 result_file: result.yaml
@@ -22,7 +22,7 @@ fit:
     optimizer : adam
     loss : mean_squared_error
   epochs : 50
-  batch_size : 512
+  batch_size : 32
   shuffle : True
   test_size: 0.2 
   valid_size : 0.1
