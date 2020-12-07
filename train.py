@@ -29,7 +29,7 @@ import yaml
 
 # data generator
 class DataGenerator(tf.keras.utils.Sequence):
-    def __init__(self, wav_paths, labels, sr, dt, n_classes, batch_size=32, shuffle=True):
+    def __init__(self, wav_paths, labels, sr, dt, n_classes, batch_size=32, n_channels=1, shuffle=True):
         self.wav_paths = wav_paths
         self.labels = labels
         self.sr = sr
@@ -37,6 +37,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.n_classes = n_classes
         self.batch_size = batch_size
         self.shuffle = True
+        self.n_channels = n_channels
         self.on_epoch_end()
 
 
@@ -51,13 +52,13 @@ class DataGenerator(tf.keras.utils.Sequence):
         labels = [self.labels[k] for k in indexes]
         
         # generate a batch of time data
-        X = np.empty((self.batch_size, int(self.sr*self.dt), 1), dtype=np.float32)
+        X = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
         Y = np.empty((self.batch_size, self.n_classes), dtype=np.float32)
 
         for i, (path, label) in enumerate(zip(wav_paths, labels)):
             rate, wav = wavfile.read(path)
 
-            X[i,] = wav[:,0].reshape(-1, 1)
+            X[i,] = wav[:,self.n_channels].reshape(-1, 1)
             Y[i,] = to_categorical(label, num_classes=self.n_classes)
 
         return X, Y
@@ -115,21 +116,24 @@ def train(args):
 
     # dataset generator
     train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"])
+                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
     valid_gen = DataGenerator(X_valid, y_valid, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"])
+                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
     test_gen = DataGenerator(X_test, y_test, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"])
+                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
     # model
     model = models[args.model]
     
     model.summary()
+    with open(f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel_report.txt','w') as fh:
+        # Pass the file handle in as a lambda function to make it callable
+        model.summary(print_fn=lambda x: fh.write(x + '\n'))
 
-    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}.png', show_shapes=True)
-    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}.pdf', show_shapes=True)
+    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel.png', show_shapes=True)
+    plot_model(model, f'{cur_dir}/{config["results_dir"]}/{model.name}_1channel.pdf', show_shapes=True)
 
     # Callbacks
     # initialize tqdm callback with default parameters
@@ -148,7 +152,7 @@ def train(args):
                         callbacks=[tqdm_cb, checkpoint_cb, early_stopping_cb, tensorboard_cb])
 
     # plots the accuracy and loss for against epochs
-    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}-history')
+    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_1channel_history')
 
     device.reset()    
 
