@@ -12,12 +12,13 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
+# tf.config.experimental.list_physical_devices('GPU')
 import tensorflow_addons as tfa
 from tensorflow.keras.utils import to_categorical, plot_model
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard
 
 from models import MyConv2D
-from utils import save_fig, model_metrics, plot_history
+from utils import fetch_dataset, save_fig, model_metrics, plot_history, fetch_dataset
 
 
 import yaml
@@ -77,8 +78,12 @@ def train_test_valid(data, test_size=0.2, valid_size=0.1):
 
     return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test
 
+def train():
+    pass
 
 if __name__ == "__main__":
+
+
 
     cur_dir = Path.cwd()
     
@@ -95,17 +100,10 @@ if __name__ == "__main__":
     results = {}
 
     # fetch dataset
-    print("================================= fetching dataset =================================\n")
-    data = pd.DataFrame(columns=['machine_type', 'machine_id', 'normal', 'abnormal', 'db'])
-    for db in tqdm(["0dB", "6dB", "min6dB"], desc='fetching db files.', leave=True):
-        for folder in tqdm((Path.cwd() / config["dataset_dir"] / db).iterdir(), desc=f'fetching machine files.', leave=False):
-            for id in tqdm(folder.iterdir(), desc=f'fetching machine id files.', leave=False):
-                normal_glob = (id / 'normal' ).glob("*.wav")
-                abnormal_glob = (id / "abnormal").glob("*.wav")
-                for normal, abnormal in zip(normal_glob, abnormal_glob):
-                    values = [folder.name, id.name, normal, abnormal, db]
-                    a_dict = dict(zip(list(data.columns), values))
-                    data = data.append(a_dict, ignore_index=True)
+    if 'dataset_df.csv' in (cur_dir / config["dataset_dir"]).iterdir():
+        data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')
+    else:
+        data = fetch_dataset()
 
     # train test valid split
     X_train, X_valid, X_test, y_train, y_valid, y_test = train_test_valid(data, test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
@@ -147,4 +145,4 @@ if __name__ == "__main__":
                         callbacks=[tqdm_cb, checkpoint_cb, early_stopping_cb, tensorboard_cb])
 
     # plots the accuracy and loss for against epochs
-    plot_history(history)
+    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}-history')

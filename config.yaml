@@ -21,7 +21,7 @@ fit:
   compile:
     optimizer : adam
     loss : mean_squared_error
-  epochs : 50
+  epochs : 1
   batch_size : 32
   shuffle : True
   test_size: 0.2 

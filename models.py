@@ -10,13 +10,6 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard
 
 
-
-
-
-
-
-
-
 def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0):
     input_shape = (int(SR*DT), 1)
     i = get_melspectrogram_layer(input_shape=input_shape,
@@ -48,3 +41,28 @@ def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0):
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     return model
+
+
+def LSTM(parameter_list):
+    """
+    docstring
+    """
+    pass
+
+def Conv1D(parameter_list):
+    """
+    docstring
+    """
+    pass
+
+def Conv2DAE(parameter_list):
+    """
+    docstring
+    """
+    pass
+
+def Conv1DAE(parameter_list):
+    """
+    docstring
+    """
+    pass
