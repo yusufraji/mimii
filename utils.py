@@ -75,14 +75,14 @@ def plot_history(history, dir, file_name):
 # fetch dataset
 def fetch_dataset():
     print("================================= fetching dataset =================================\n")
-    data = pd.DataFrame(columns=['machine_type', 'machine_id', 'normal', 'abnormal', 'db'])
+    data = pd.DataFrame(columns=['machine_type', 'machine_id', 'machine_type_id', 'normal', 'abnormal', 'db'])
     for db in tqdm(["0dB", "6dB", "min6dB"], desc='fetching db files.', leave=True):
         for folder in tqdm((Path.cwd() / config["dataset_dir"] / db).iterdir(), desc=f'fetching machine files.', leave=False):
             for id in tqdm(folder.iterdir(), desc=f'fetching machine id files.', leave=False):
                 normal_glob = (id / 'normal' ).glob("*.wav")
                 abnormal_glob = (id / "abnormal").glob("*.wav")
                 for normal, abnormal in zip(normal_glob, abnormal_glob):
-                    values = [folder.name, id.name, normal, abnormal, db]
+                    values = [folder.name, id.name, f'{folder.name}_{id.name}', normal, abnormal, db]
                     a_dict = dict(zip(list(data.columns), values))
                     data = data.append(a_dict, ignore_index=True)
     data.to_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from pathlib import Path
 import argparse
 from scipy.io import wavfile
@@ -71,11 +72,14 @@ class DataGenerator(tf.keras.utils.Sequence):
 
 
 # create train test and valid set
-def train_test_valid(data, test_size=0.2, valid_size=0.1):
+def train_test_valid(data, n_classes=4, test_size=0.2, valid_size=0.1):
 
     # integer encoder
     le = LabelEncoder()
-    integer_encoded = le.fit_transform(data['machine_type'])
+    if n_classes == 4:
+        integer_encoded = le.fit_transform(data['machine_type'])
+    else:
+        integer_encoded = le.fit_transform(data["machine_type_id"])
     # Split train, test, and valid set
     X_train_full, X_test, y_train_full, y_test = train_test_split(data['normal'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
     X_train, X_valid, y_train, y_valid = train_test_split(X_train_full, y_train_full, test_size=valid_size, shuffle=True, random_state=42)
@@ -94,6 +98,7 @@ def train(args):
 
     models = {'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])}
     assert args.model in models.keys(), f'{args.model} is unavailable.'
+    assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
     # create directories
     Path.mkdir(cur_dir / config["results_dir"], exist_ok=True)
@@ -110,7 +115,7 @@ def train(args):
         data = fetch_dataset()
 
     # train test valid split
-    X_train, X_valid, X_test, y_train, y_valid, y_test = train_test_valid(data, test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
+    X_train, X_valid, X_test, y_train, y_valid, y_test = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
     train_size = len(X_train)
     valid_size = len(X_valid)
 
@@ -143,6 +148,7 @@ def train(args):
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir = f'{cur_dir}/{config["log_dir"]}/{model_name}')
 
+    start_time = datetime.now()
     history = model.fit(train_gen, 
                         steps_per_epoch=int(train_size / config["fit"]["batch_size"]), 
                         validation_data=valid_gen, 
@@ -151,6 +157,8 @@ def train(args):
                         verbose=0, 
                         callbacks=[tqdm_cb, checkpoint_cb, early_stopping_cb, tensorboard_cb])
 
+    time_elapsed = datetime.now() - start_time 
+    print(f'{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}')
     # plots the accuracy and loss for against epochs
     plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_history')
 
