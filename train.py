@@ -74,14 +74,28 @@ class DataGenerator(tf.keras.utils.Sequence):
 # create train test and valid set
 def train_test_valid(data, n_classes=4, test_size=0.2, valid_size=0.1):
 
+    data = data.loc[data['machine_type'] == 'fan']
+    normal = pd.DataFrame(columns=["X", "y"])
+    normal["X"] = data["normal"]
+    normal["y"] = ['normal']*len(data["normal"])
+    
+    abnormal = pd.DataFrame(columns=["X", "y"])
+    abnormal["X"] = data["abnormal"]
+    abnormal["y"] = ['abnormal']*len(data["abnormal"])
+    
+    both_df = pd.concat([normal, abnormal], ignore_index=True)
+
     # integer encoder
     le = LabelEncoder()
-    if n_classes == 4:
-        integer_encoded = le.fit_transform(data['machine_type'])
-    else:
-        integer_encoded = le.fit_transform(data["machine_type_id"])
+    # if n_classes == 4:
+    #     integer_encoded = le.fit_transform(data['machine_type'])
+    # else:
+    #     integer_encoded = le.fit_transform(data["machine_type_id"])
+    integer_encoded = le.fit_transform(both_df["y"])
+    
+
     # Split train, test, and valid set
-    X_train_full, X_test, y_train_full, y_test = train_test_split(data['normal'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
+    X_train_full, X_test, y_train_full, y_test = train_test_split(both_df['X'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
     X_train, X_valid, y_train, y_valid = train_test_split(X_train_full, y_train_full, test_size=valid_size, shuffle=True, random_state=42)
 
     return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test
@@ -98,7 +112,7 @@ def train(args):
 
     models = {'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])}
     assert args.model in models.keys(), f'{args.model} is unavailable.'
-    assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
+    # assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
     # create directories
     Path.mkdir(cur_dir / config["results_dir"], exist_ok=True)
