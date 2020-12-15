@@ -123,7 +123,7 @@ def train(args):
     train_size = len(X_train)
     valid_size = len(X_valid)
 
-    test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv')
+    test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv', index=False)
 
     # dataset generator
     train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
@@ -148,7 +148,7 @@ def train(args):
 
     # Callbacks
     # initialize tqdm callback with default parameters
-    tqdm_cb = tfa.callbacks.TQDMProgressBar()
+    tqdm_cb = tfa.callbacks.TQDMProgressBar(leave_epoch_progress=True, leave_overall_progress=True)
     checkpoint_cb = ModelCheckpoint(f'{cur_dir}/{config["results_dir"]}/{model.name}.h5', save_best_only=True)
     early_stopping_cb = EarlyStopping(patience=5, restore_best_weights=True)
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
