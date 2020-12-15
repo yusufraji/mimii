@@ -84,7 +84,11 @@ def train_test_valid(data, n_classes=4, test_size=0.2, valid_size=0.1):
     X_train_full, X_test, y_train_full, y_test = train_test_split(data['normal'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
     X_train, X_valid, y_train, y_valid = train_test_split(X_train_full, y_train_full, test_size=valid_size, shuffle=True, random_state=42)
 
-    return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test
+    test_df = pd.DataFrame()
+    test_df['X_test'] = X_test
+    test_df['y_test'] = le.inverse_transform(y_test)
+
+    return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test, test_df
 
 def train(args):
     """
@@ -115,9 +119,11 @@ def train(args):
         data = fetch_dataset()
 
     # train test valid split
-    X_train, X_valid, X_test, y_train, y_valid, y_test = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
+    X_train, X_valid, X_test, y_train, y_valid, y_test, test_df = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
     train_size = len(X_train)
     valid_size = len(X_valid)
+
+    test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv')
 
     # dataset generator
     train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
@@ -165,7 +171,7 @@ def train(args):
     device.reset()    
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Malfunctioning Industrial Machine Investigation and Inspection (MIMII). Classification/Anomaly Detection')
+    parser = argparse.ArgumentParser(description='Malfunctioning Industrial Machine Investigation and Inspection (MIMII). Classification/Anomaly Detection Training.')
     parser.add_argument('--model', type=str, default='myconv2d',
                         help='model to train. (myconv1d, myconv2d, mylstm, myconv1dae, myconv2dae')
     args, _ = parser.parse_known_args()
