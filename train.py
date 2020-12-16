@@ -51,7 +51,7 @@ class DataGeneratorAE(tf.keras.utils.Sequence):
         X = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
         Y = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
 
-        for i, (path) in enumerate(zip(wav_paths)):
+        for i, (path) in enumerate(wav_paths):
             rate, wav = wavfile.read(path)
             
             X[i,] = wav[:,:self.n_channels]

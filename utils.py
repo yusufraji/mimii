@@ -64,7 +64,7 @@ def plot_history(history, dir, file_name):
     plt.plot(epoch, val_loss, label = 'Validation loss', color = 'b')
     plt.gca().set_ylim(0, 1)
     plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
+    plt.ylabel("Loss")
     plt.legend()
     plt.grid(True)
     plt.title('Training and Validation Loss')
