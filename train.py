@@ -21,11 +21,49 @@ from tensorflow.keras.utils import to_categorical, plot_model
 from tensorflow.keras.callbacks import EarlyStopping, LearningRateScheduler, ModelCheckpoint, TensorBoard
 from numba import cuda 
 
-from models import MyConv2D
+from models import MyConv2D, MyConv2DAE
 from utils import fetch_dataset, save_fig, model_metrics, plot_history, fetch_dataset
 
 
 import yaml
+
+# data generator for Autoencoder
+class DataGeneratorAE(tf.keras.utils.Sequence):
+    def __init__(self, wav_paths, sr, dt, batch_size=32, n_channels=1, shuffle=True):
+        self.wav_paths = wav_paths
+        self.sr = sr
+        self.dt = dt
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.n_channels = n_channels
+        self.on_epoch_end()
+
+
+    def __len__(self):
+        return int(np.floor(len(self.wav_paths) / self.batch_size))
+
+
+    def __getitem__(self, index):
+        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
+        wav_paths = [self.wav_paths[k] for k in indexes]
+        
+        # generate a batch of time data
+        X = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
+        Y = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
+
+        for i, (path) in enumerate(zip(wav_paths)):
+            rate, wav = wavfile.read(path)
+            
+            X[i,] = wav[:,:self.n_channels]
+            Y[i,] = wav[:,:self.n_channels]
+
+        return X, Y
+
+
+    def on_epoch_end(self):
+        self.indexes = np.arange(len(self.wav_paths))
+        if self.shuffle:
+            np.random.shuffle(self.indexes)
 
 
 # data generator
@@ -104,7 +142,9 @@ def train(args):
     with open("config.yaml") as stream:
         config = yaml.safe_load(stream)
 
-    models = {'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])}
+    models={'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"]),
+            'myconv2dae' : MyConv2DAE(SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])
+            }
     assert args.model in models.keys(), f'{args.model} is unavailable.'
     assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
@@ -130,15 +170,29 @@ def train(args):
     train_df.to_csv(cur_dir / config["dataset_dir"] / 'train_df.csv', index=False)
     test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv', index=False)
 
+    # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
+    # an autoencoder, and create a new data generatore for ae
+    if (args.model == 'myconv2dae'):
+        y_train, y_valid, y_test = X_train, X_valid, X_test
+        train_gen = DataGeneratorAE(X_train, config["feature"]["sr"], config["feature"]["dt"],
+                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+
+        valid_gen = DataGeneratorAE(X_valid, config["feature"]["sr"], config["feature"]["dt"],
+                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+
+        test_gen = DataGeneratorAE(X_test, config["feature"]["sr"], config["feature"]["dt"],
+                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+
     # dataset generator
-    train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+    elif (args.model == 'myconv2d'):
+        train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
+                            n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
-    valid_gen = DataGenerator(X_valid, y_valid, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+        valid_gen = DataGenerator(X_valid, y_valid, config["feature"]["sr"], config["feature"]["dt"],
+                            n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
-    test_gen = DataGenerator(X_test, y_test, config["feature"]["sr"], config["feature"]["dt"],
-                        n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+        test_gen = DataGenerator(X_test, y_test, config["feature"]["sr"], config["feature"]["dt"],
+                            n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 
     # model
     model = models[args.model]
