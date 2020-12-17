@@ -2,7 +2,10 @@ import time
 from datetime import datetime
 from pathlib import Path
 import argparse
+from librosa.core.spectrum import amplitude_to_db
+from librosa.feature.spectral import melspectrogram
 from scipy.io import wavfile
+import librosa
 from silence_tensorflow import silence_tensorflow
 silence_tensorflow()
 
@@ -29,38 +32,66 @@ import yaml
 
 # data generator for Autoencoder
 class DataGeneratorAE(tf.keras.utils.Sequence):
-    def __init__(self, wav_paths, sr, dt, batch_size=32, n_channels=1, shuffle=True):
+    def __init__(self, wav_paths, sr, dt, batch_size=32, n_channels=1, n_mels=128, hop_length=512, shuffle=True):
+        # 'Initialization'
         self.wav_paths = wav_paths
         self.sr = sr
         self.dt = dt
         self.batch_size = batch_size
-        self.shuffle = shuffle
         self.n_channels = n_channels
+        self.n_mels = n_mels
+        self.hop_length = hop_length
+        self.shuffle = shuffle
         self.on_epoch_end()
 
 
     def __len__(self):
+        # 'Denotes the number of batches per epoch'
         return int(np.floor(len(self.wav_paths) / self.batch_size))
 
 
     def __getitem__(self, index):
+        # 'Generate one batch of data'
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
         wav_paths = [self.wav_paths[k] for k in indexes]
         
-        # generate a batch of time data
-        X = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
-        Y = np.empty((self.batch_size, int(self.sr*self.dt), self.n_channels), dtype=np.float32)
+        # generate a batch of time data. X = Y = [32,128,313,8]
+        # reference:
+        # https://stackoverflow.com/questions/51241499/parameters-to-control-the-size-of-a-spectrogram
+        n_frames = int(np.floor((self.sr*self.dt)/self.hop_length) + 1)
+        # n_frames must be even for autoencoder symmetry
+        # round n_frames up to the nearest even value!
+        n_frames = int(np.ceil(n_frames/2.) * 2)
 
-        for i, (path) in enumerate(wav_paths):
+        X = np.empty((self.batch_size, self.n_mels, n_frames, self.n_channels), dtype=np.float32)
+        Y = np.empty((self.batch_size, self.n_mels, n_frames, self.n_channels), dtype=np.float32)
+
+        for i, path in enumerate(wav_paths):
             rate, wav = wavfile.read(path)
+            # change the wav file format to float since wavfile.read returns int
+            # and librosa.feature.melspectrogram expects float wav = [160000,8]
+            wav = wav.astype(np.float)
             
-            X[i,] = wav[:,:self.n_channels]
-            Y[i,] = wav[:,:self.n_channels]
+            # convert the audio to melspectrogram one channel at a time. since
+            # librosa only works on mono S_dB = [128,313,8]
+            # reference: https://stackoverflow.com/questions/51241499/parameters-to-control-the-size-of-a-spectrogram
+            S_db = np.empty((self.n_mels, n_frames, self.n_channels), dtype=np.float32)
+            for j in range(self.n_channels):
+                S = librosa.feature.melspectrogram(y=wav[:,j], sr=self.sr, hop_length=self.hop_length)
+                # amplitude_to_db and pad with zeros to the length of even
+                # adjusted n_frames
+                S_db_tmp = librosa.amplitude_to_db(S, ref=np.max)
+                # reference: https://stackoverflow.com/questions/38191855/zero-pad-numpy-array/38192105
+                S_db[:,:,j] = np.pad(S_db_tmp, ((0,0),(0,n_frames - S_db_tmp.shape[1])), 'constant')
+
+            X[i,] = S_db
+            Y[i,] = S_db
 
         return X, Y
 
 
     def on_epoch_end(self):
+        # 'Updates indexes after each epoch'
         self.indexes = np.arange(len(self.wav_paths))
         if self.shuffle:
             np.random.shuffle(self.indexes)
@@ -143,7 +174,7 @@ def train(args):
         config = yaml.safe_load(stream)
 
     models={'myconv2d' : MyConv2D(N_CLASSES=config["feature"]["n_classes"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"]),
-            'myconv2dae' : MyConv2DAE(SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_CHANNELS=config["feature"]["n_channels"])
+            'myconv2dae' : MyConv2DAE(N_CHANNELS=config["feature"]["n_channels"], SR=config["feature"]["sr"], DT=config["feature"]["dt"], N_MELS=config["feature"]["n_mels"], HOP_LENGTH=config["feature"]["hop_length"])
             }
     assert args.model in models.keys(), f'{args.model} is unavailable.'
     assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
@@ -174,14 +205,14 @@ def train(args):
     # an autoencoder, and create a new data generatore for ae
     if (args.model == 'myconv2dae'):
         y_train, y_valid, y_test = X_train, X_valid, X_test
-        train_gen = DataGeneratorAE(X_train, config["feature"]["sr"], config["feature"]["dt"],
-                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+        train_gen = DataGeneratorAE(X_train, config["feature"]["sr"], config["feature"]["dt"],batch_size=config["fit"]["batch_size"], 
+                                    n_channels=config["feature"]["n_channels"], n_mels=config["feature"]["n_mels"], hop_length=config["feature"]["hop_length"])
 
-        valid_gen = DataGeneratorAE(X_valid, config["feature"]["sr"], config["feature"]["dt"],
-                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+        valid_gen = DataGeneratorAE(X_valid, config["feature"]["sr"], config["feature"]["dt"],batch_size=config["fit"]["batch_size"], 
+                                    n_channels=config["feature"]["n_channels"], n_mels=config["feature"]["n_mels"], hop_length=config["feature"]["hop_length"])
 
-        test_gen = DataGeneratorAE(X_test, config["feature"]["sr"], config["feature"]["dt"],
-                            batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
+        test_gen = DataGeneratorAE(X_test, config["feature"]["sr"], config["feature"]["dt"],batch_size=config["fit"]["batch_size"], 
+                                    n_channels=config["feature"]["n_channels"], n_mels=config["feature"]["n_mels"], hop_length=config["feature"]["hop_length"])
 
     # dataset generator
     elif (args.model == 'myconv2d'):
@@ -231,7 +262,7 @@ def train(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Malfunctioning Industrial Machine Investigation and Inspection (MIMII). Classification/Anomaly Detection Training.')
-    parser.add_argument('--model', type=str, default='myconv2d',
+    parser.add_argument('--model', type=str, default='myconv2dae',
                         help='model to train. (myconv1d, myconv2d, mylstm, myconv1dae, myconv2dae')
     args, _ = parser.parse_known_args()
 
