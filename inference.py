@@ -45,7 +45,7 @@ def infer(args):
     assert config["feature"]["n_classes"] in [4, 16], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
     # load the test set
-    assert 'test_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()], f'tes_df.csv not found!'
+    assert 'test_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()], f'test_df.csv not found!'
     test_df = pd.read_csv(cur_dir / config["dataset_dir"] / 'test_df.csv')
 
     le = LabelEncoder()
