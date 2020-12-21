@@ -32,9 +32,9 @@ import yaml
 
 # data generator for Autoencoder
 class DataGeneratorAE(tf.keras.utils.Sequence):
-    def __init__(self, wav_paths, sr, dt, batch_size=32, n_channels=1, n_mels=128, hop_length=512, shuffle=True):
+    def __init__(self, npy_paths, sr, dt, batch_size=32, n_channels=1, n_mels=128, hop_length=512, shuffle=True):
         # 'Initialization'
-        self.wav_paths = wav_paths
+        self.npy_paths = npy_paths
         self.sr = sr
         self.dt = dt
         self.batch_size = batch_size
@@ -47,13 +47,13 @@ class DataGeneratorAE(tf.keras.utils.Sequence):
 
     def __len__(self):
         # 'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.wav_paths) / self.batch_size))
+        return int(np.floor(len(self.npy_paths) / self.batch_size))
 
 
     def __getitem__(self, index):
         # 'Generate one batch of data'
         indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        wav_paths = [self.wav_paths[k] for k in indexes]
+        npy_paths = [self.npy_paths[k] for k in indexes]
         
         # generate a batch of time data. X = Y = [32,128,313,8]
         # reference:
@@ -65,24 +65,8 @@ class DataGeneratorAE(tf.keras.utils.Sequence):
 
         X = np.empty((self.batch_size, self.n_mels, n_frames, self.n_channels), dtype=np.float32)
         Y = np.empty((self.batch_size, self.n_mels, n_frames, self.n_channels), dtype=np.float32)
-
-        for i, path in enumerate(wav_paths):
-            rate, wav = wavfile.read(path)
-            # change the wav file format to float since wavfile.read returns int
-            # and librosa.feature.melspectrogram expects float wav = [160000,8]
-            wav = wav.astype(np.float)
-            
-            # convert the audio to melspectrogram one channel at a time. since
-            # librosa only works on mono S_dB = [128,313,8]
-            # reference: https://stackoverflow.com/questions/51241499/parameters-to-control-the-size-of-a-spectrogram
-            S_db = np.empty((self.n_mels, n_frames, self.n_channels), dtype=np.float32)
-            for j in range(self.n_channels):
-                S = librosa.feature.melspectrogram(y=wav[:,j], sr=self.sr, hop_length=self.hop_length)
-                # amplitude_to_db and pad with zeros to the length of even
-                # adjusted n_frames
-                S_db_tmp = librosa.amplitude_to_db(S, ref=np.max)
-                # reference: https://stackoverflow.com/questions/38191855/zero-pad-numpy-array/38192105
-                S_db[:,:,j] = np.pad(S_db_tmp, ((0,0),(0,n_frames - S_db_tmp.shape[1])), 'constant')
+        for i, path in enumerate(npy_paths):
+            S_db = np.load(path)
 
             X[i,] = S_db
             Y[i,] = S_db
@@ -92,7 +76,7 @@ class DataGeneratorAE(tf.keras.utils.Sequence):
 
     def on_epoch_end(self):
         # 'Updates indexes after each epoch'
-        self.indexes = np.arange(len(self.wav_paths))
+        self.indexes = np.arange(len(self.npy_paths))
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
@@ -141,25 +125,40 @@ class DataGenerator(tf.keras.utils.Sequence):
 
 
 # create train test and valid set
-def train_test_valid(data, n_classes=4, test_size=0.2, valid_size=0.1):
+def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False):
 
-    # integer encoder
-    le = LabelEncoder()
-    if n_classes == 4:
-        integer_encoded = le.fit_transform(data['machine_type'])
+    if ae:
+        # Split train, test, and valid set
+        X_train_full, X_test = train_test_split(data['normal'], test_size=test_size, shuffle=True, random_state=42)
+        X_train, X_valid = train_test_split(X_train_full, test_size=valid_size, shuffle=True, random_state=42)
+
+        # append the abnormal files to X_test
+        X_test.append(data['abnormal'])
+
+        y_train, y_valid, y_test = X_train, X_valid, X_test
+
+        train_df = pd.DataFrame()
+        train_df['X_train'], train_df['y_train'] = X_train, y_train
+
+        test_df = pd.DataFrame()
+        test_df['X_test'], test_df['y_test']= X_test, y_test
+
     else:
-        integer_encoded = le.fit_transform(data["machine_type_id"])
-    # Split train, test, and valid set
-    X_train_full, X_test, y_train_full, y_test = train_test_split(data['normal'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
-    X_train, X_valid, y_train, y_valid = train_test_split(X_train_full, y_train_full, test_size=valid_size, shuffle=True, random_state=42)
+        # integer encoder
+        le = LabelEncoder()
+        if n_classes == 4:
+            integer_encoded = le.fit_transform(data['machine_type'])
+        else:
+            integer_encoded = le.fit_transform(data["machine_type_id"])
+        # Split train, test, and valid set
+        X_train_full, X_test, y_train_full, y_test = train_test_split(data['normal'], integer_encoded, test_size=test_size, shuffle=True, random_state=42)
+        X_train, X_valid, y_train, y_valid = train_test_split(X_train_full, y_train_full, test_size=valid_size, shuffle=True, random_state=42)
 
-    train_df = pd.DataFrame()
-    train_df['X_train'] = X_train
-    train_df['y_train'] = le.inverse_transform(y_train)
+        train_df = pd.DataFrame()
+        train_df['X_train'], train_df['y_train'] = X_train, le.inverse_transform(y_train)
 
-    test_df = pd.DataFrame()
-    test_df['X_test'] = X_test
-    test_df['y_test'] = le.inverse_transform(y_test)
+        test_df = pd.DataFrame()
+        test_df['X_test'], test_df['y_test'] = X_test, le.inverse_transform(y_test)
 
     return np.asarray(X_train), np.asarray(X_valid), np.asarray(X_test), y_train, y_valid, y_test, train_df, test_df
 
@@ -187,24 +186,23 @@ def train(args):
     result_file = "{result}/{file}".format(result=config["results_dir"], file=config["result_file"])
     results = {}
 
-    # fetch dataset
-    if 'dataset_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
-        data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')
-    else:
-        data = fetch_dataset()
-
-    # train test valid split
-    X_train, X_valid, X_test, y_train, y_valid, y_test, train_df, test_df = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
-    train_size = len(X_train)
-    valid_size = len(X_valid)
-
-    train_df.to_csv(cur_dir / config["dataset_dir"] / 'train_df.csv', index=False)
-    test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv', index=False)
-
     # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
     # an autoencoder, and create a new data generatore for ae
     if (args.model == 'myconv2dae'):
-        y_train, y_valid, y_test = X_train, X_valid, X_test
+        # fetch dataset
+        if 'dataset_ae_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
+            data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_ae_df.csv')
+        else:
+            data = fetch_dataset(extension="npy", dataset_file_name="dataset_ae_df")
+
+        # train test valid split
+        X_train, X_valid, X_test, y_train, y_valid, y_test, train_df, test_df = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"], ae=True)
+        train_size = len(X_train)
+        valid_size = len(X_valid)
+
+        train_df.to_csv(cur_dir / config["dataset_dir"] / 'train_ae_df.csv', index=False)
+        test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_ae_df.csv', index=False)
+
         train_gen = DataGeneratorAE(X_train, config["feature"]["sr"], config["feature"]["dt"],batch_size=config["fit"]["batch_size"], 
                                     n_channels=config["feature"]["n_channels"], n_mels=config["feature"]["n_mels"], hop_length=config["feature"]["hop_length"])
 
@@ -216,6 +214,21 @@ def train(args):
 
     # dataset generator
     elif (args.model == 'myconv2d'):
+
+        # fetch dataset
+        if 'dataset_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
+            data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')
+        else:
+            data = fetch_dataset(extension="wav", dataset_file_name="dataset_df")
+
+        # train test valid split
+        X_train, X_valid, X_test, y_train, y_valid, y_test, train_df, test_df = train_test_valid(data, n_classes=config["feature"]["n_classes"], test_size=config["fit"]["test_size"], valid_size=config["fit"]["valid_size"])
+        train_size = len(X_train)
+        valid_size = len(X_valid)
+
+        train_df.to_csv(cur_dir / config["dataset_dir"] / 'train_df.csv', index=False)
+        test_df.to_csv(cur_dir / config["dataset_dir"] / 'test_df.csv', index=False)
+
         train_gen = DataGenerator(X_train, y_train, config["feature"]["sr"], config["feature"]["dt"],
                             n_classes=config["feature"]["n_classes"], batch_size=config["fit"]["batch_size"], n_channels=config["feature"]["n_channels"])
 

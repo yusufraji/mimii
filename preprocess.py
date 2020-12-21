@@ -13,7 +13,14 @@ start_time = datetime.now()
 with open("config.yaml") as stream:
     config = yaml.safe_load(stream)
 
+# generate a batch of time data. X = Y = [32,128,313,8]
+# reference:
+# https://stackoverflow.com/questions/51241499/parameters-to-control-the-size-of-a-spectrogram
 n_frames = int(np.floor((config["feature"]["sr"]*config["feature"]["dt"])/config["feature"]["hop_length"]) + 1)
+# n_frames must be even for autoencoder symmetry
+# round n_frames up to the nearest even value!
+n_frames = int(np.ceil(n_frames/2.) * 2)
+
 # 1. read audio dataset. 
 # 2. convert to melspectrogram.
 # 3. write melspectrogram as numpy array to file in the same directory as the
@@ -42,4 +49,4 @@ for item in tqdm(wav_files, desc='preprocessing wav files.', leave=False):
 
 time_elapsed = datetime.now() - start_time 
 print(f'preprocessing elapsed (hh:mm:ss.ms) {time_elapsed}')
-# preprocessing elapsed (hh:mm:ss.ms) 2:32:54.054153
+# preprocessing elapsed (hh:mm:ss.ms) 2:44:14.563688
