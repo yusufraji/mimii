@@ -38,7 +38,7 @@ def model_metrics(y_test, y_pred, decoded, model_name):
 
 
 # plots the accuracy and loss against epochs
-def plot_history(history, dir, file_name):
+def plot_history(history, dir, file_name, ae):
     
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
@@ -62,7 +62,8 @@ def plot_history(history, dir, file_name):
     plt.subplot(122)
     plt.plot(epoch, loss, label = 'Training loss', color = 'r')
     plt.plot(epoch, val_loss, label = 'Validation loss', color = 'b')
-    plt.gca().set_ylim(0, 1)
+    if not ae:
+        plt.gca().set_ylim(0, 1)
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.legend()

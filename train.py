@@ -133,7 +133,8 @@ def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False
         X_train, X_valid = train_test_split(X_train_full, test_size=valid_size, shuffle=True, random_state=42)
 
         # append the abnormal files to X_test
-        X_test.append(data['abnormal'])
+        X_test = X_test.values.tolist()
+        X_test.extend(data['abnormal'].values.tolist())
 
         y_train, y_valid, y_test = X_train, X_valid, X_test
 
@@ -189,6 +190,7 @@ def train(args):
     # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
     # an autoencoder, and create a new data generatore for ae
     if (args.model == 'myconv2dae'):
+        ae = True
         # fetch dataset
         if 'dataset_ae_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
             data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_ae_df.csv')
@@ -214,7 +216,7 @@ def train(args):
 
     # dataset generator
     elif (args.model == 'myconv2d'):
-
+        ae = False
         # fetch dataset
         if 'dataset_df.csv' in [x.name for x in (cur_dir / config["dataset_dir"]).iterdir()]:
             data = pd.read_csv(cur_dir / config["dataset_dir"] / 'dataset_df.csv')
@@ -253,7 +255,7 @@ def train(args):
     # initialize tqdm callback with default parameters
     tqdm_cb = tfa.callbacks.TQDMProgressBar(leave_epoch_progress=True, leave_overall_progress=True)
     checkpoint_cb = ModelCheckpoint(f'{cur_dir}/{config["results_dir"]}/{model.name}.h5', save_best_only=True)
-    early_stopping_cb = EarlyStopping(patience=5, restore_best_weights=True)
+    early_stopping_cb = EarlyStopping(patience=10, restore_best_weights=True)
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir = f'{cur_dir}/{config["log_dir"]}/{model_name}')
 
@@ -269,7 +271,7 @@ def train(args):
     time_elapsed = datetime.now() - start_time 
     print(f'{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}')
     # plots the accuracy and loss for against epochs
-    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_history')
+    plot_history(history=history, dir=f'{cur_dir}/{config["results_dir"]}', file_name=f'{model.name}_history', ae=ae)
 
     device.reset()    
 

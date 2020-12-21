@@ -76,14 +76,22 @@ def MyConv2DAE(N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     x = Conv2D(16, kernel_size=(5,5), activation='relu', padding='same', name='conv2d_relu_1')(x)
     x = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_2')(x)
     x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_2')(x)
-    e = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_3')(x)
+    x = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_3')(x)
+    x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_3')(x)
+    x = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_4')(x)
+    x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_4')(x)
+    e = MaxPooling2D(pool_size=(2,2), padding='same', name='max_pool_2d_5')(x)
     
-    x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_3')(e)
+    x = Conv2D(32, kernel_size=(3,3), activation='relu', padding='same', name='conv2d_relu_5')(e)
     x = UpSampling2D(size=(2,2), name='up_2d_1')(x)
-    x = Conv2D(16, kernel_size=(5,5), activation='relu', padding='same', name='conv2d_relu_4')(x)
+    x = Conv2D(16, kernel_size=(5,5), activation='relu', padding='same', name='conv2d_relu_6')(x)
     x = UpSampling2D(size=(2,2), name='up_2d_2')(x)
-    x = Conv2D(8, kernel_size=(7,7), activation='tanh', padding='same', name='conv2d_tanh_2')(x)
+    x = Conv2D(16, kernel_size=(5,5), activation='relu', padding='same', name='conv2d_relu_7')(x)
     x = UpSampling2D(size=(2,2), name='up_2d_3')(x)
+    x = Conv2D(16, kernel_size=(5,5), activation='relu', padding='same', name='conv2d_relu_8')(x)
+    x = UpSampling2D(size=(2,2), name='up_2d_4')(x)
+    x = Conv2D(8, kernel_size=(7,7), activation='tanh', padding='same', name='conv2d_tanh_2')(x)
+    x = UpSampling2D(size=(2,2), name='up_2d_5')(x)
     # crop the output
     # reference:
     # https://stats.stackexchange.com/questions/376464/convolutional-autoencoder-on-an-odd-size-image
