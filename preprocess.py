@@ -6,6 +6,7 @@ from scipy.io import wavfile
 from tqdm import tqdm
 from pathlib import Path
 from datetime import datetime
+from sklearn.preprocessing import MinMaxScaler
 
 start_time = datetime.now()
 
@@ -44,6 +45,10 @@ for item in tqdm(wav_files, desc='preprocessing wav files.', leave=False):
         S_db_tmp = librosa.amplitude_to_db(S, ref=np.max)
         # reference: https://stackoverflow.com/questions/38191855/zero-pad-numpy-array/38192105
         S_db[:,:,j] = np.pad(S_db_tmp, ((0,0),(0,n_frames - S_db_tmp.shape[1])), 'constant')
+        # normalize
+        minmax = MinMaxScaler()
+        S_db[:,:,j] = minmax.fit_transform(S_db[:,:,j])
+
     # save the converted melspectrogram numpy array to file
     np.save((item.parent / item.stem), S_db)
 
