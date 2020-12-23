@@ -266,7 +266,7 @@ def train(args):
                         epochs=config["fit"]["epochs"],
                         validation_steps=int(valid_size / config["fit"]["batch_size"]), 
                         verbose=0, 
-                        callbacks=[tqdm_cb, checkpoint_cb, early_stopping_cb, tensorboard_cb])
+                        callbacks=[tqdm_cb, checkpoint_cb, tensorboard_cb])
 
     time_elapsed = datetime.now() - start_time 
     print(f'{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}')
