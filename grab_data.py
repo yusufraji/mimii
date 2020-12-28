@@ -1,10 +1,11 @@
 import os
-import wget
-from pathlib import Path
 import subprocess
+from pathlib import Path
+
+import wget
 
 path = Path.cwd()
-dataset_path = path / 'dataset'
+dataset_path = path / "dataset"
 os.chdir(dataset_path)
 # download the dataset
 # url = 'https://raw.githubusercontent.com/Call-for-Code/Spot-Challenge-Wildfires/main/data/Nov_10.zip'
@@ -41,4 +42,4 @@ os.chdir(dataset_path)
 # wget.dowload(url, '')
 
 # run script to unzip dataset
-subprocess.call(['sh', './shell.sh'])
+subprocess.call(["sh", "./shell.sh"])
