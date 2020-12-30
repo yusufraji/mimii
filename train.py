@@ -478,14 +478,14 @@ def train(args):
         ae=ae,
     )
 
-    # plot the loss distribution of train, valid and test
-    if ae:
-        # model = load_model(cur_dir / 'results' / '2d_convolution_autoencoder.h5')
-        loss_dist(
-            model=model,
-            results_dir=cur_dir / config["results_dir"],
-            dataset_dir=cur_dir / "dataset",
-        )
+    # # plot the loss distribution of train, valid and test
+    # if ae:
+    #     # model = load_model(cur_dir / 'results' / '2d_convolution_autoencoder.h5')
+    #     loss_dist(
+    #         model=model,
+    #         results_dir=cur_dir / config["results_dir"],
+    #         dataset_dir=cur_dir / "dataset",
+    #     )
 
     device.reset()
 

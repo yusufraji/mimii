@@ -142,7 +142,7 @@ def MyConv2DAE(N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     x = Flatten(name="flatten_1")(x)
     # x = BatchNormalization(name="batch_norm_6")(x)
     x = Dropout(0.2, name="dropout_1")(x)
-    x = Dense(600, activation="relu", kernel_regularizer="l1_l2", name="dense_1")(x)
+    x = Dense(1, activation="relu", kernel_regularizer="l1_l2", name="dense_1")(x)
     # x = BatchNormalization(name="batch_norm_7")(x)
     e = Dropout(0.2, name="dropout_2")(x)
     ##### ENCODER ENDS #####
