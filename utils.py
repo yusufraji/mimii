@@ -1,4 +1,6 @@
 from pathlib import Path
+from datetime import datetime
+import seaborn as sns
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -150,3 +152,51 @@ def make_predictions(model, le, X, y, show=True):
         print(f"True class: {y}. Predicted class: {y_pred}")
 
     return y_pred
+
+def loss_dist(model, results_dir, dataset_dir):
+    """
+    docstring
+    """
+    print("plotting loss distribution")
+    train = pd.read_csv(dataset_dir / "train_ae_df.csv")
+    valid = pd.read_csv(dataset_dir / "valid_ae_df.csv")
+    test = pd.read_csv(dataset_dir / "test_ae_df.csv")
+    # remove the other normal files set aside for testing
+    # test = test.iloc[1982:]
+
+    start_time = datetime.now()
+    train["loss"] = train.apply(
+        lambda x: make_ae_predictions(model, x.X_train, x.y_train, show=False), axis=1
+    )
+    valid["loss"] = valid.apply(
+        lambda x: make_ae_predictions(model, x.X_valid, x.y_valid, show=False), axis=1
+    )
+    test["loss"] = test.apply(
+        lambda x: make_ae_predictions(model, x.X_test, x.y_test, show=False), axis=1
+    )
+
+    # train_pred = train_pred.reshape(train_pred.shape[0], train_pred.shape[2])
+    # valid_pred = history.predict(valid)
+    # valid_pred = valid_pred.reshape(valid_pred.shape[0], valid_pred.shape[2])
+    # test_pred = history.predict(test)
+    # test_pred = test_pred.reshape(test_pred.shape[0], test_pred.shape[2])
+
+    plt.figure(figsize=(16, 9))
+    sns.distplot(
+        train["loss"], kde=True, label="train", color=sns.color_palette("bright")[0]
+    )
+    sns.distplot(
+        valid["loss"], kde=True, label="valid", color=sns.color_palette("bright")[1]
+    )
+    sns.distplot(
+        test["loss"], kde=True, label="test", color=sns.color_palette("bright")[2]
+    )
+    plt.legend()
+    plt.grid(True)
+    plt.title(f"Loss Distribution of {model.name}.")
+    save_fig(fig_dir=results_dir, fig_id=f"loss_dist_{model.name}")
+    time_elapsed = datetime.now() - start_time
+    print(
+        f"loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
+    )
+
