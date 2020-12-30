@@ -251,6 +251,8 @@ def loss_dist(model, results_dir, dataset_dir):
     train = pd.read_csv(dataset_dir / "train_ae_df.csv")
     valid = pd.read_csv(dataset_dir / "valid_ae_df.csv")
     test = pd.read_csv(dataset_dir / "test_ae_df.csv")
+    # remove the other normal files set aside for testing
+    test = test.iloc[1982:]
 
     start_time = datetime.now()
     train["loss"] = train.apply(
