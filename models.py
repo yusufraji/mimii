@@ -110,78 +110,81 @@ def MyConv2DAE(N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     ##### ENCODER STARTS #####
     i = Input(shape=input_shape, name="input")
     x = Conv2D(
-        8, kernel_size=(7, 7), activation="elu", padding="same", name="conv2d_elu_1"
+        128, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_1"
     )(i)
-    x = BatchNormalization(name="batch_norm_1")(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="max_pool_2d_1")(x)
+    x = BatchNormalization(name="enc_batchnorm_1")(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_1")(x)
     x = Conv2D(
-        16, kernel_size=(5, 5), activation="elu", padding="same", name="conv2d_elu_2"
+        64, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_2"
     )(x)
-    x = BatchNormalization(name="batch_norm_2")(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="max_pool_2d_2")(x)
+    x = BatchNormalization(name="enc_batchnorm_2")(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_2")(x)
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="conv2d_elu_3"
+        32, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_3"
     )(x)
-    x = BatchNormalization(name="batch_norm_3")(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="max_pool_2d_3")(x)
+    x = BatchNormalization(name="enc_batchnorm_3")(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_3")(x)
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="conv2d_elu_4"
+        16, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_4"
     )(x)
-    x = BatchNormalization(name="batch_norm_4")(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="max_pool_2d_4")(x)
+    x = BatchNormalization(name="enc_batchnorm_4")(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_4")(x)
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="conv2d_elu_5"
+        8, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_5"
     )(x)
-    x = BatchNormalization(name="batch_norm_5")(x)
-    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="max_pool_2d_5")(x)
+    x = BatchNormalization(name="enc_batchnorm_5")(x)
+    x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_5")(x)
 
     # get the dimension before flatten
     # to be used at the decoder for reshaping
     p, q, r = x.shape[1], x.shape[2], x.shape[3]
 
-    x = Flatten(name="flatten_1")(x)
+    x = Flatten(name="enc_flatten_1")(x)
     # x = BatchNormalization(name="batch_norm_6")(x)
-    x = Dropout(0.2, name="dropout_1")(x)
-    x = Dense(1, activation="elu", kernel_regularizer="l1_l2", name="dense_1")(x)
+    # x = Dropout(0.2, name="dropout_1")(x)
+    x = Dense(1, activation="elu", kernel_regularizer="l1_l2", name="enc_dense_1")(x)
     # x = BatchNormalization(name="batch_norm_7")(x)
-    e = Dropout(0.2, name="dropout_2")(x)
+    e = Dropout(0.2, name="enc_dropout_1")(x)
     ##### ENCODER ENDS #####
 
     ##### DECODER STARTS #####
-    x = Dense(p*q*r, activation="elu", name="dense_2")(e)
+    x = Dense(p*q*r, activation="elu", name="dec_dense_1")(e)
     # x = BatchNormalization(name="batch_norm_8")(x)
-    x = Dropout(0.2, name="dropout_3")(x)
-    x = tf.reshape(x, [-1, p, q, r], name="reshape_1")
+    x = Dropout(0.2, name="dec_dropout_1")(x)
+    x = tf.reshape(x, [-1, p, q, r], name="dec_reshape_1")
 
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="conv2d_elu_6"
+        8, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_1"
     )(x)
-    x = BatchNormalization(name="batch_norm_9")(x)
-    x = UpSampling2D(size=(2, 2), name="up_2d_1")(x)
+    x = BatchNormalization(name="dec_batchnorm_1")(x)
+    x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_1")(x)
     x = Conv2D(
-        16, kernel_size=(5, 5), activation="elu", padding="same", name="conv2d_elu_7"
+        16, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_2"
     )(x)
-    x = BatchNormalization(name="batch_norm_10")(x)
-    x = UpSampling2D(size=(2, 2), name="up_2d_2")(x)
+    x = BatchNormalization(name="dec_batchnorm_2")(x)
+    x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_2")(x)
     x = Conv2D(
-        16, kernel_size=(5, 5), activation="elu", padding="same", name="conv2d_elu_8"
+        32, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_3"
     )(x)
-    x = BatchNormalization(name="batch_norm_11")(x)
-    x = UpSampling2D(size=(2, 2), name="up_2d_3")(x)
+    x = BatchNormalization(name="dec_batchnorm_3")(x)
+    x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_3")(x)
     x = Conv2D(
-        16, kernel_size=(5, 5), activation="elu", padding="same", name="conv2d_elu_9"
+        64, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_4"
     )(x)
-    x = BatchNormalization(name="batch_norm_12")(x)
-    x = UpSampling2D(size=(2, 2), name="up_2d_4")(x)
+    x = BatchNormalization(name="dec_batchnorm_4")(x)
+    x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_4")(x)
     x = Conv2D(
-        8, kernel_size=(7, 7), activation="elu", padding="same", name="conv2d_elu_10"
+        128, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_5"
     )(x)
-    x = BatchNormalization(name="batch_norm_13")(x)
-    x = UpSampling2D(size=(2, 2), name="up_2d_5")(x)
+    x = Conv2D(
+        8, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_6"
+    )(x)
+    x = BatchNormalization(name="dec_batchnorm_5")(x)
+    x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_5")(x)
     # crop the output
     # reference:
     # https://stats.stackexchange.com/questions/376464/convolutional-autoencoder-on-an-odd-size-image
-    d = Cropping2D(cropping=((0, 0), (3, 3)), data_format=None)(x)
+    d = Cropping2D(cropping=((0, 0), (3, 3)), data_format=None, name="output")(x)
     ##### DECODER ENDS #####
 
     model = Model(inputs=i, outputs=d, name="2d_convolution_autoencoder")
