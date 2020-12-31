@@ -5,11 +5,12 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 import scikitplot as skplt
 import yaml
 from sklearn.metrics import classification_report
 from tqdm import tqdm
-
+tqdm.pandas()
 cur_dir = Path.cwd()
 
 # load config yaml
@@ -48,26 +49,28 @@ def model_metrics(y_test, y_pred, decoded, model_name):
 # plots the accuracy and loss against epochs
 def plot_history(history, dir, file_name, ae):
 
-    acc = history.history["accuracy"]
-    val_acc = history.history["val_accuracy"]
     loss = history.history["loss"]
     val_loss = history.history["val_loss"]
 
     epoch = history.epoch
 
     plt.figure(figsize=(11, 4))
-    plt.suptitle(f"History of {file_name}")
-    plt.subplot(121)
-    plt.plot(epoch, acc, label="Training accuracy", color="r")
-    plt.plot(epoch, val_acc, label="Validation accuracy", color="b")
-    plt.gca().set_ylim(0, 1)
-    plt.xlabel("Epoch")
-    plt.ylabel("Accuracy")
-    plt.legend()
-    plt.grid(True)
-    plt.title("Training and Validation Accuracy")
+    if not ae:
+        acc = history.history["accuracy"]
+        val_acc = history.history["val_accuracy"]
 
-    plt.subplot(122)
+        plt.suptitle(f"History of {file_name}")
+        plt.subplot(121)
+        plt.plot(epoch, acc, label="Training accuracy", color="r")
+        plt.plot(epoch, val_acc, label="Validation accuracy", color="b")
+        plt.gca().set_ylim(0, 1)
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        plt.grid(True)
+        plt.title("Training and Validation Accuracy")
+
+        plt.subplot(122)
     plt.plot(epoch, loss, label="Training loss", color="r")
     plt.plot(epoch, val_loss, label="Validation loss", color="b")
     if not ae:
@@ -165,13 +168,16 @@ def loss_dist(model, results_dir, dataset_dir):
     # test = test.iloc[1982:]
 
     start_time = datetime.now()
-    train["loss"] = train.apply(
+    print('======= computing reconstruction loss for train data ======= ')
+    train["loss"] = train.progress_apply(
         lambda x: make_ae_predictions(model, x.X_train, x.y_train, show=False), axis=1
     )
-    valid["loss"] = valid.apply(
+    print('======= computing reconstruction loss for valid data ======= ')
+    valid["loss"] = valid.progress_apply(
         lambda x: make_ae_predictions(model, x.X_valid, x.y_valid, show=False), axis=1
     )
-    test["loss"] = test.apply(
+    print('======= computing reconstruction loss for test data ======= ')
+    test["loss"] = test.progress_apply(
         lambda x: make_ae_predictions(model, x.X_test, x.y_test, show=False), axis=1
     )
 
@@ -200,3 +206,8 @@ def loss_dist(model, results_dir, dataset_dir):
         f"loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
     )
 
+def rmse(y_true, y_pred):
+    """
+    docstring
+    """
+    return tf.sqrt(tf.reduce_mean(tf.square(y_true - y_pred)))
