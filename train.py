@@ -43,7 +43,12 @@ from utils import (
 silence_tensorflow()
 
 tf.config.experimental.list_physical_devices("GPU")
-
+physical_devices = tf.config.list_physical_devices('GPU')
+try:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+except:
+    # Invalid device or cannot modify virtual devices once initialized.
+    pass
 # data generator for Autoencoder
 
 
@@ -301,7 +306,7 @@ def train(args):
         else:
             data = fetch_dataset(extension="npy", dataset_file_name="dataset_ae_df")
 
-        data = data.loc[data["machine_type"] == "fan"]
+        data = data.loc[(data["machine_type_id"] == "fan_id_00") & (data["db"] == "0dB")]
         # train test valid split
         (
             X_train,
@@ -453,7 +458,7 @@ def train(args):
     checkpoint_cb = ModelCheckpoint(
         f'{cur_dir}/{config["results_dir"]}/{model.name}.h5', save_best_only=True
     )
-    early_stopping_cb = EarlyStopping(patience=10, restore_best_weights=True)
+    early_stopping_cb = EarlyStopping(monitor="val_loss", patience=5, mode="min", restore_best_weights=True)
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir=f'{cur_dir}/{config["log_dir"]}/{model_name}')
 
@@ -478,14 +483,14 @@ def train(args):
         ae=ae,
     )
 
-    # # plot the loss distribution of train, valid and test
-    # if ae:
-    #     # model = load_model(cur_dir / 'results' / '2d_convolution_autoencoder.h5')
-    #     loss_dist(
-    #         model=model,
-    #         results_dir=cur_dir / config["results_dir"],
-    #         dataset_dir=cur_dir / "dataset",
-    #     )
+    # plot the loss distribution of train, valid and test
+    if ae:
+        # model = load_model(cur_dir / 'results' / '2d_convolution_autoencoder.h5')
+        loss_dist(
+            model=model,
+            results_dir=cur_dir / config["results_dir"],
+            dataset_dir=cur_dir / "dataset",
+        )
 
     device.reset()
 

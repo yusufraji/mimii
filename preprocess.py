@@ -6,7 +6,7 @@ import numpy as np
 import yaml
 from librosa.feature.spectral import melspectrogram
 from scipy.io import wavfile
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from tqdm import tqdm
 
 start_time = datetime.now()
@@ -65,7 +65,8 @@ for item in tqdm(wav_files, desc="preprocessing wav files.", leave=False):
         )
         # normalize
         minmax = MinMaxScaler()
-        S_db[:, :, j] = minmax.fit_transform(S_db[:, :, j])
+        ss = StandardScaler()
+        S_db[:, :, j] = ss.fit_transform(S_db[:, :, j])
 
     # save the converted melspectrogram numpy array to file
     np.save((item.parent / item.stem), S_db)

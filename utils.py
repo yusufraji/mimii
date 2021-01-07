@@ -137,7 +137,9 @@ def make_ae_predictions(model, X, y, show=True):
     y = y[np.newaxis, :, :, :]
     # predict and compute the loss
     y_pred = model.predict(X)
-    loss = np.mean((y - y_pred) ** 2)
+    #loss = np.mean((y - y_pred) ** 2)
+    # loss = rmse(y, y_pred)
+    loss = np.mean(np.abs(y - y_pred))
     if show:
         print(f"Loss: {loss}")
 
@@ -187,10 +189,14 @@ def loss_dist(model, results_dir, dataset_dir):
     # test_pred = history.predict(test)
     # test_pred = test_pred.reshape(test_pred.shape[0], test_pred.shape[2])
 
+    threshold = train["loss"].quantile(0.95)
+
     plt.figure(figsize=(16, 9))
     sns.distplot(
         train["loss"], kde=True, label="train", color=sns.color_palette("bright")[0]
     )
+    plt.vlines(threshold, 0, 5, linestyles ="dashed", colors ="k")
+    plt.text(threshold, 5, f"95th Percentile @ {threshold}", size = 10, alpha =.8)
     sns.distplot(
         valid["loss"], kde=True, label="valid", color=sns.color_palette("bright")[1]
     )
