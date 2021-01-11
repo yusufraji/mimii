@@ -49,6 +49,7 @@ def model_metrics(y_test, y_pred, decoded, model_name):
 # plots the accuracy and loss against epochs
 def plot_history(history, dir, file_name, ae):
 
+    print(history.history.keys())
     loss = history.history["loss"]
     val_loss = history.history["val_loss"]
 
@@ -158,14 +159,14 @@ def make_predictions(model, le, X, y, show=True):
 
     return y_pred
 
-def loss_dist(model, results_dir, dataset_dir):
+def loss_dist(model, results_dir, dataset_dir, id):
     """
     docstring
     """
     print("plotting loss distribution")
-    train = pd.read_csv(dataset_dir / "train_ae_df.csv")
-    valid = pd.read_csv(dataset_dir / "valid_ae_df.csv")
-    test = pd.read_csv(dataset_dir / "test_ae_df.csv")
+    train = pd.read_csv(dataset_dir / f"train_{id}.csv")
+    valid = pd.read_csv(dataset_dir / f"valid_{id}.csv")
+    test = pd.read_csv(dataset_dir / f"test_{id}.csv")
     # remove the other normal files set aside for testing
     # test = test.iloc[1982:]
 
@@ -209,7 +210,7 @@ def loss_dist(model, results_dir, dataset_dir):
     save_fig(fig_dir=results_dir, fig_id=f"loss_dist_{model.name}")
     time_elapsed = datetime.now() - start_time
     print(
-        f"loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
+        f"{id} loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
     )
 
 def rmse(y_true, y_pred):

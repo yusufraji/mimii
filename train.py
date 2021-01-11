@@ -23,6 +23,7 @@ from tensorflow.keras.callbacks import (
     LearningRateScheduler,
     ModelCheckpoint,
     TensorBoard,
+    LambdaCallback,
 )
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import plot_model, to_categorical
@@ -43,7 +44,7 @@ from utils import (
 silence_tensorflow()
 
 tf.config.experimental.list_physical_devices("GPU")
-physical_devices = tf.config.list_physical_devices('GPU')
+physical_devices = tf.config.list_physical_devices("GPU")
 try:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 except:
@@ -251,12 +252,85 @@ def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False
     )
 
 
+def fit_model(
+    model,
+    config,
+    id,
+    ae,
+    train_size,
+    valid_size,
+    train_gen,
+    valid_gen,
+    results_dir,
+    logs_dir,
+):
+    """
+    docstring
+    """
+    model.summary()
+    with open(f"{results_dir}/{model.name}_report.txt", "w") as fh:
+        # Pass the file handle in as a lambda function to make it callable
+        model.summary(print_fn=lambda x: fh.write(x + "\n"))
+
+    plot_model(model, f"{results_dir}/{model.name}.png", show_shapes=True)
+    plot_model(model, f"{results_dir}/{model.name}.pdf", show_shapes=True)
+
+    # Callbacks
+    # initialize tqdm callback with default parameters
+    tqdm_cb = tfa.callbacks.TQDMProgressBar(
+        leave_epoch_progress=True, leave_overall_progress=True
+    )
+    checkpoint_cb = ModelCheckpoint(
+        f"{results_dir}/{model.name}.h5", save_best_only=True
+    )
+    early_stopping_cb = EarlyStopping(
+        monitor="val_loss", patience=10, mode="min", restore_best_weights=True
+    )
+    model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
+    tensorboard_cb = TensorBoard(log_dir=f"{logs_dir}/{model_name}")
+    # Stream the epoch loss to a file.
+    txt_log = open(f"{logs_dir}_loss_log.txt", mode="wt", buffering=1)
+    save_op_cb = LambdaCallback(
+        on_epoch_end=lambda epoch, logs: txt_log.write(
+            f'epoch: {epoch}, loss: {logs["loss"]}\n'
+        ),
+        on_train_end=lambda logs: txt_log.close(),
+    )
+
+    start_time = datetime.now()
+    history = model.fit(
+        train_gen,
+        steps_per_epoch=int(train_size / config["fit"]["batch_size"]),
+        validation_data=valid_gen,
+        epochs=config["fit"]["epochs"],
+        validation_steps=int(valid_size / config["fit"]["batch_size"]),
+        verbose=0,
+        callbacks=[
+            tqdm_cb,
+            checkpoint_cb,
+            # early_stopping_cb,
+            tensorboard_cb,
+            save_op_cb,
+        ],
+    )
+
+    time_elapsed = datetime.now() - start_time
+    print(f"{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}")
+    # plots the accuracy and loss for against epochs
+    plot_history(
+        history=history,
+        dir=f"{results_dir}",
+        file_name=f"{model.name}_history",
+        ae=ae,
+    )
+    return model
 
 
 def train(args):
     """
     docstring
     """
+    global cur_dir
     cur_dir = Path.cwd()
     device = cuda.get_current_device()
     # load config yaml
@@ -271,6 +345,7 @@ def train(args):
             N_CHANNELS=config["feature"]["n_channels"],
         ),
         "myconv2dae": MyConv2DAE(
+            ID="2d_convolution_autoencoder",
             N_CHANNELS=config["feature"]["n_channels"],
             SR=config["feature"]["sr"],
             DT=config["feature"]["dt"],
@@ -285,8 +360,8 @@ def train(args):
     ], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
     # create directories
-    Path.mkdir(cur_dir / config["results_dir"], exist_ok=True)
-    Path.mkdir(cur_dir / config["log_dir"], exist_ok=True)
+    Path.mkdir(cur_dir / config["results_dir"], parents=True, exist_ok=True)
+    Path.mkdir(cur_dir / config["logs_dir"], parents=True, exist_ok=True)
 
     # setup result
     result_file = "{result}/{file}".format(
@@ -297,80 +372,138 @@ def train(args):
     # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
     # an autoencoder, and create a new data generatore for ae
     if args.model == "myconv2dae":
+        start_time = datetime.now()
         ae = True
         # fetch dataset
         if "dataset_ae_df.csv" in [
             x.name for x in (cur_dir / config["dataset_dir"]).iterdir()
         ]:
-            data = pd.read_csv(cur_dir / config["dataset_dir"] / "dataset_ae_df.csv")
+            full_data = pd.read_csv(
+                cur_dir / config["dataset_dir"] / "dataset_ae_df.csv"
+            )
         else:
-            data = fetch_dataset(extension="npy", dataset_file_name="dataset_ae_df")
+            full_data = fetch_dataset(
+                extension="npy", dataset_file_name="dataset_ae_df"
+            )
 
-        data = data.loc[(data["machine_type_id"] == "fan_id_00") & (data["db"] == "0dB")]
-        # train test valid split
-        (
-            X_train,
-            X_valid,
-            X_test,
-            y_train,
-            y_valid,
-            y_test,
-            train_df,
-            valid_df,
-            test_df,
-        ) = train_test_valid(
-            data,
-            n_classes=config["feature"]["n_classes"],
-            test_size=config["fit"]["test_size"],
-            valid_size=config["fit"]["valid_size"],
-            ae=True,
-        )
-        train_size = len(X_train)
-        valid_size = len(X_valid)
+        for db in np.unique(full_data.db):
+            for machine_type_id in np.unique(full_data.machine_type_id):
 
-        train_df.to_csv(
-            cur_dir / config["dataset_dir"] / "train_ae_df.csv", index=False
-        )
+                id = f"{machine_type_id}_{db}"
 
-        valid_df.to_csv(
-            cur_dir / config["dataset_dir"] / "valid_ae_df.csv", index=False
-        )
+                print("=" * 20, end="")
+                print(f" training {id} ", end="")
+                print("=" * 20)
 
-        test_df.to_csv(cur_dir / config["dataset_dir"] / "test_ae_df.csv", index=False)
+                dataset_dir = cur_dir / config["dataset_dir"] / db / machine_type_id
+                results_dir = cur_dir / config["results_dir"] / db / machine_type_id
+                logs_dir = cur_dir / config["logs_dir"] / db / machine_type_id
+                # create directories
+                Path.mkdir(dataset_dir, parents=True, exist_ok=True)
+                Path.mkdir(results_dir, parents=True, exist_ok=True)
+                Path.mkdir(logs_dir, parents=True, exist_ok=True)
 
-        train_gen = DataGeneratorAE(
-            X_train,
-            config["feature"]["sr"],
-            config["feature"]["dt"],
-            batch_size=config["fit"]["batch_size"],
-            n_channels=config["feature"]["n_channels"],
-            n_mels=config["feature"]["n_mels"],
-            hop_length=config["feature"]["hop_length"],
-        )
+                data = full_data.loc[
+                    (full_data["machine_type_id"] == machine_type_id)
+                    & (full_data["db"] == db)
+                ]
+                # train test valid split
+                (
+                    X_train,
+                    X_valid,
+                    X_test,
+                    y_train,
+                    y_valid,
+                    y_test,
+                    train_df,
+                    valid_df,
+                    test_df,
+                ) = train_test_valid(
+                    data,
+                    n_classes=config["feature"]["n_classes"],
+                    test_size=config["fit"]["test_size"],
+                    valid_size=config["fit"]["valid_size"],
+                    ae=True,
+                )
+                train_size = len(X_train)
+                valid_size = len(X_valid)
 
-        valid_gen = DataGeneratorAE(
-            X_valid,
-            config["feature"]["sr"],
-            config["feature"]["dt"],
-            batch_size=config["fit"]["batch_size"],
-            n_channels=config["feature"]["n_channels"],
-            n_mels=config["feature"]["n_mels"],
-            hop_length=config["feature"]["hop_length"],
-        )
+                train_df.to_csv(dataset_dir / f"train_{id}.csv", index=False)
 
-        test_gen = DataGeneratorAE(
-            X_test,
-            config["feature"]["sr"],
-            config["feature"]["dt"],
-            batch_size=config["fit"]["batch_size"],
-            n_channels=config["feature"]["n_channels"],
-            n_mels=config["feature"]["n_mels"],
-            hop_length=config["feature"]["hop_length"],
-        )
+                valid_df.to_csv(dataset_dir / f"valid_{id}.csv", index=False)
+
+                test_df.to_csv(dataset_dir / f"test_{id}.csv", index=False)
+
+                train_gen = DataGeneratorAE(
+                    X_train,
+                    config["feature"]["sr"],
+                    config["feature"]["dt"],
+                    batch_size=config["fit"]["batch_size"],
+                    n_channels=config["feature"]["n_channels"],
+                    n_mels=config["feature"]["n_mels"],
+                    hop_length=config["feature"]["hop_length"],
+                )
+
+                valid_gen = DataGeneratorAE(
+                    X_valid,
+                    config["feature"]["sr"],
+                    config["feature"]["dt"],
+                    batch_size=config["fit"]["batch_size"],
+                    n_channels=config["feature"]["n_channels"],
+                    n_mels=config["feature"]["n_mels"],
+                    hop_length=config["feature"]["hop_length"],
+                )
+
+                test_gen = DataGeneratorAE(
+                    X_test,
+                    config["feature"]["sr"],
+                    config["feature"]["dt"],
+                    batch_size=config["fit"]["batch_size"],
+                    n_channels=config["feature"]["n_channels"],
+                    n_mels=config["feature"]["n_mels"],
+                    hop_length=config["feature"]["hop_length"],
+                )
+
+                # fit the model
+                model = MyConv2DAE(
+                    ID=id,
+                    N_CHANNELS=config["feature"]["n_channels"],
+                    SR=config["feature"]["sr"],
+                    DT=config["feature"]["dt"],
+                    N_MELS=config["feature"]["n_mels"],
+                    HOP_LENGTH=config["feature"]["hop_length"],
+                )
+                fitted_model = fit_model(
+                    model=model,
+                    config=config,
+                    id=id,
+                    ae=ae,
+                    train_size=train_size,
+                    valid_size=valid_size,
+                    train_gen=train_gen,
+                    valid_gen=valid_gen,
+                    results_dir=results_dir,
+                    logs_dir=logs_dir,
+                )
+                # plot the loss distribution of train, valid and test
+                loss_dist(
+                    model=fitted_model,
+                    results_dir=results_dir,
+                    dataset_dir=dataset_dir,
+                    id=id,
+                )
+        time_elapsed = datetime.now() - start_time
+        print(f"{args.model} elapsed (hh:mm:ss.ms) {time_elapsed}")
 
     # dataset generator
     elif args.model == "myconv2d":
         ae = False
+        results_dir = cur_dir / config["results_dir"] / "myconv2d"
+        logs_dir = cur_dir / config["logs_dir"] / "myconv2d"
+        # create directories
+        Path.mkdir(results_dir, parents=True, exist_ok=True)
+        Path.mkdir(logs_dir, parents=True, exist_ok=True)
+
         # fetch dataset
         if "dataset_df.csv" in [
             x.name for x in (cur_dir / config["dataset_dir"]).iterdir()
@@ -399,11 +532,11 @@ def train(args):
         train_size = len(X_train)
         valid_size = len(X_valid)
 
-        train_df.to_csv(cur_dir / config["dataset_dir"] / "train_df.csv", index=False)
+        train_df.to_csv(results_dir / "train_df.csv", index=False)
 
-        valid_df.to_csv(cur_dir / config["dataset_dir"] / "valid_df.csv", index=False)
+        valid_df.to_csv(results_dir / "valid_df.csv", index=False)
 
-        test_df.to_csv(cur_dir / config["dataset_dir"] / "test_df.csv", index=False)
+        test_df.to_csv(results_dir / "test_df.csv", index=False)
 
         train_gen = DataGenerator(
             X_train,
@@ -435,61 +568,18 @@ def train(args):
             n_channels=config["feature"]["n_channels"],
         )
 
-    # model
-    model = models[args.model]
-
-    model.summary()
-    with open(f'{cur_dir}/{config["results_dir"]}/{model.name}_report.txt', "w") as fh:
-        # Pass the file handle in as a lambda function to make it callable
-        model.summary(print_fn=lambda x: fh.write(x + "\n"))
-
-    plot_model(
-        model, f'{cur_dir}/{config["results_dir"]}/{model.name}.png', show_shapes=True
-    )
-    plot_model(
-        model, f'{cur_dir}/{config["results_dir"]}/{model.name}.pdf', show_shapes=True
-    )
-
-    # Callbacks
-    # initialize tqdm callback with default parameters
-    tqdm_cb = tfa.callbacks.TQDMProgressBar(
-        leave_epoch_progress=True, leave_overall_progress=True
-    )
-    checkpoint_cb = ModelCheckpoint(
-        f'{cur_dir}/{config["results_dir"]}/{model.name}.h5', save_best_only=True
-    )
-    early_stopping_cb = EarlyStopping(monitor="val_loss", patience=5, mode="min", restore_best_weights=True)
-    model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
-    tensorboard_cb = TensorBoard(log_dir=f'{cur_dir}/{config["log_dir"]}/{model_name}')
-
-    start_time = datetime.now()
-    history = model.fit(
-        train_gen,
-        steps_per_epoch=int(train_size / config["fit"]["batch_size"]),
-        validation_data=valid_gen,
-        epochs=config["fit"]["epochs"],
-        validation_steps=int(valid_size / config["fit"]["batch_size"]),
-        verbose=0,
-        callbacks=[tqdm_cb, checkpoint_cb, tensorboard_cb],
-    )
-
-    time_elapsed = datetime.now() - start_time
-    print(f"{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}")
-    # plots the accuracy and loss for against epochs
-    plot_history(
-        history=history,
-        dir=f'{cur_dir}/{config["results_dir"]}',
-        file_name=f"{model.name}_history",
-        ae=ae,
-    )
-
-    # plot the loss distribution of train, valid and test
-    if ae:
-        # model = load_model(cur_dir / 'results' / '2d_convolution_autoencoder.h5')
-        loss_dist(
-            model=model,
-            results_dir=cur_dir / config["results_dir"],
-            dataset_dir=cur_dir / "dataset",
+        # fit the model
+        model = fit_model(
+            model=models[args.model],
+            config=config,
+            id=args.model,
+            ae=ae,
+            train_size=train_size,
+            valid_size=valid_size,
+            train_gen=train_gen,
+            valid_gen=valid_gen,
+            results_dir=results_dir,
+            logs_dir=logs_dir,
         )
 
     device.reset()

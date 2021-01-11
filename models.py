@@ -96,7 +96,7 @@ def MyConv1D(parameter_list):
     pass
 
 
-def MyConv2DAE(N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
+def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     """
     docstring
     """
@@ -187,7 +187,7 @@ def MyConv2DAE(N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     d = Cropping2D(cropping=((0, 0), (3, 3)), data_format=None, name="output")(x)
     ##### DECODER ENDS #####
 
-    model = Model(inputs=i, outputs=d, name="2d_convolution_autoencoder")
+    model = Model(inputs=i, outputs=d, name=ID)
     model.compile(optimizer="adam", loss=rmse, metrics=[tf.keras.metrics.RootMeanSquaredError()])
     return model
 
