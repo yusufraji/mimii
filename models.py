@@ -30,6 +30,8 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.utils import plot_model, to_categorical
 
 from utils import rmse
+
+
 def MyConv2D(N_CLASSES=4, SR=16000, DT=10.0, N_CHANNELS=8):
     input_shape = (int(SR * DT), N_CHANNELS)
     i = get_melspectrogram_layer(
@@ -110,22 +112,38 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     ##### ENCODER STARTS #####
     i = Input(shape=input_shape, name="input")
     x = Conv2D(
-        128, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_1"
+        128,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="enc_conv2d_elu_1",
     )(i)
     x = BatchNormalization(name="enc_batchnorm_1")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_1")(x)
     x = Conv2D(
-        64, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_2"
+        64,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="enc_conv2d_elu_2",
     )(x)
     x = BatchNormalization(name="enc_batchnorm_2")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_2")(x)
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_3"
+        32,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="enc_conv2d_elu_3",
     )(x)
     x = BatchNormalization(name="enc_batchnorm_3")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_3")(x)
     x = Conv2D(
-        16, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_4"
+        16,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="enc_conv2d_elu_4",
     )(x)
     x = BatchNormalization(name="enc_batchnorm_4")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_4")(x)
@@ -148,7 +166,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     ##### ENCODER ENDS #####
 
     ##### DECODER STARTS #####
-    x = Dense(p*q*r, activation="elu", name="dec_dense_1")(e)
+    x = Dense(p * q * r, activation="elu", name="dec_dense_1")(e)
     # x = BatchNormalization(name="batch_norm_8")(x)
     x = Dropout(0.2, name="dec_dropout_1")(x)
     x = tf.reshape(x, [-1, p, q, r], name="dec_reshape_1")
@@ -159,22 +177,38 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     x = BatchNormalization(name="dec_batchnorm_1")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_1")(x)
     x = Conv2D(
-        16, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_2"
+        16,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="dec_conv2d_elu_2",
     )(x)
     x = BatchNormalization(name="dec_batchnorm_2")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_2")(x)
     x = Conv2D(
-        32, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_3"
+        32,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="dec_conv2d_elu_3",
     )(x)
     x = BatchNormalization(name="dec_batchnorm_3")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_3")(x)
     x = Conv2D(
-        64, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_4"
+        64,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="dec_conv2d_elu_4",
     )(x)
     x = BatchNormalization(name="dec_batchnorm_4")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_4")(x)
     x = Conv2D(
-        128, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_5"
+        128,
+        kernel_size=(3, 3),
+        activation="elu",
+        padding="same",
+        name="dec_conv2d_elu_5",
     )(x)
     x = Conv2D(
         8, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_6"
@@ -188,7 +222,11 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     ##### DECODER ENDS #####
 
     model = Model(inputs=i, outputs=d, name=ID)
-    model.compile(optimizer="adam", loss=rmse, metrics=[tf.keras.metrics.RootMeanSquaredError()])
+    model.compile(
+        optimizer="adam",
+        loss=rmse,
+        metrics=[tf.keras.metrics.RootMeanSquaredError(name="rmse")],
+    )
     return model
 
 

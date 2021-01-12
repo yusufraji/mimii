@@ -1,5 +1,6 @@
 import argparse
 import time
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -20,10 +21,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.callbacks import (
     EarlyStopping,
+    LambdaCallback,
     LearningRateScheduler,
     ModelCheckpoint,
     TensorBoard,
-    LambdaCallback,
 )
 from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import plot_model, to_categorical
@@ -32,13 +33,14 @@ from tqdm import tqdm
 
 from models import MyConv2D, MyConv2DAE
 from utils import (
+    LossDistributionCallback,
     fetch_dataset,
+    loss_dist,
     make_ae_predictions,
     make_predictions,
     model_metrics,
     plot_history,
     save_fig,
-    loss_dist,
 )
 
 silence_tensorflow()
@@ -51,6 +53,7 @@ except:
     # Invalid device or cannot modify virtual devices once initialized.
     pass
 # data generator for Autoencoder
+warnings.filterwarnings(action="ignore")
 
 
 class DataGeneratorAE(tf.keras.utils.Sequence):
@@ -261,6 +264,7 @@ def fit_model(
     valid_size,
     train_gen,
     valid_gen,
+    dataset_dir,
     results_dir,
     logs_dir,
 ):
@@ -284,15 +288,16 @@ def fit_model(
         f"{results_dir}/{model.name}.h5", save_best_only=True
     )
     early_stopping_cb = EarlyStopping(
-        monitor="val_loss", patience=10, mode="min", restore_best_weights=True
+        monitor="threshold_diff", patience=10, mode="max", restore_best_weights=True
     )
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir=f"{logs_dir}/{model_name}")
+    loss_dist_cb = LossDistributionCallback(dataset_dir, id)
     # Stream the epoch loss to a file.
     txt_log = open(f"{logs_dir}_loss_log.txt", mode="wt", buffering=1)
     save_op_cb = LambdaCallback(
         on_epoch_end=lambda epoch, logs: txt_log.write(
-            f'epoch: {epoch}, loss: {logs["loss"]}\n'
+            f'epoch: {epoch}, loss: {logs["loss"]}, threshold_diff: {logs["threshold_diff"]}\n'
         ),
         on_train_end=lambda logs: txt_log.close(),
     )
@@ -308,8 +313,9 @@ def fit_model(
         callbacks=[
             tqdm_cb,
             checkpoint_cb,
-            # early_stopping_cb,
             tensorboard_cb,
+            early_stopping_cb,
+            loss_dist_cb,
             save_op_cb,
         ],
     )
@@ -391,6 +397,7 @@ def train(args):
 
                 id = f"{machine_type_id}_{db}"
 
+                print("\n\n")
                 print("=" * 20, end="")
                 print(f" training {id} ", end="")
                 print("=" * 20)
@@ -482,6 +489,7 @@ def train(args):
                     valid_size=valid_size,
                     train_gen=train_gen,
                     valid_gen=valid_gen,
+                    dataset_dir=dataset_dir,
                     results_dir=results_dir,
                     logs_dir=logs_dir,
                 )

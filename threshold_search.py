@@ -20,7 +20,9 @@ with open("config.yaml") as stream:
 
 
 # plot the loss distribution of train, valid and test
-model = load_model(cur_dir / "results" / "2d_convolution_autoencoder.h5", custom_objects={"rmse": rmse})
+model = load_model(
+    cur_dir / "results" / "2d_convolution_autoencoder.h5", custom_objects={"rmse": rmse}
+)
 loss_dist(
     model=model,
     results_dir=cur_dir / config["results_dir"],
