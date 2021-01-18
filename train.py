@@ -1,4 +1,5 @@
 import argparse
+import sys
 import time
 import warnings
 from datetime import datetime
@@ -52,7 +53,6 @@ try:
 except:
     # Invalid device or cannot modify virtual devices once initialized.
     pass
-# data generator for Autoencoder
 warnings.filterwarnings(action="ignore")
 
 
@@ -190,10 +190,8 @@ def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False
         )
 
         # append the abnormal files to X_test
-        # X_test = X_test.values.tolist()
-        # X_test.extend(data["abnormal"].values.tolist())
-
-        X_test = data["abnormal"]
+        X_test = X_test.values.tolist()
+        X_test.extend(data["abnormal"].values.tolist())
 
         y_train, y_valid, y_test = X_train, X_valid, X_test
 
@@ -288,7 +286,7 @@ def fit_model(
         f"{results_dir}/{model.name}.h5", save_best_only=True
     )
     early_stopping_cb = EarlyStopping(
-        monitor="threshold_diff", patience=10, mode="max", restore_best_weights=True
+        monitor="threshold_diff", patience=3, mode="max", restore_best_weights=True
     )
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir=f"{logs_dir}/{model_name}")
@@ -369,15 +367,18 @@ def train(args):
     Path.mkdir(cur_dir / config["results_dir"], parents=True, exist_ok=True)
     Path.mkdir(cur_dir / config["logs_dir"], parents=True, exist_ok=True)
 
-    # setup result
-    result_file = "{result}/{file}".format(
-        result=config["results_dir"], file=config["result_file"]
-    )
-    results = {}
-
     # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
     # an autoencoder, and create a new data generatore for ae
     if args.model == "myconv2dae":
+        # redirect console output to txt file
+        sys.stdout = open(Path(config["logs_dir"]) / "train_autoencoder.txt", "w")
+
+        # setup result
+        result_file = "{result}/{file}".format(
+            result=config["results_dir"], file=config["result_file"]
+        )
+        results = {}
+
         start_time = datetime.now()
         ae = True
         # fetch dataset
@@ -494,17 +495,26 @@ def train(args):
                     logs_dir=logs_dir,
                 )
                 # plot the loss distribution of train, valid and test
-                loss_dist(
+                threshold = loss_dist(
                     model=fitted_model,
                     results_dir=results_dir,
                     dataset_dir=dataset_dir,
                     id=id,
                 )
+                results[id] = {"threshold": float(np.round(threshold, 4))}
+
+        # write results to yaml file
+        with open(result_file, "w") as file:
+            yaml.dump(results, file, default_flow_style=False)
         time_elapsed = datetime.now() - start_time
         print(f"{args.model} elapsed (hh:mm:ss.ms) {time_elapsed}")
+        sys.stdout.close()
 
     # dataset generator
     elif args.model == "myconv2d":
+        # redirect console output to txt file
+        sys.stdout = open(Path(config["logs_dir"]) / "train_classifier.txt", "w")
+
         ae = False
         results_dir = cur_dir / config["results_dir"] / "myconv2d"
         logs_dir = cur_dir / config["logs_dir"] / "myconv2d"
@@ -589,6 +599,7 @@ def train(args):
             results_dir=results_dir,
             logs_dir=logs_dir,
         )
+        sys.stdout.close()
 
     device.reset()
 

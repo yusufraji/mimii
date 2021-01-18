@@ -1,14 +1,21 @@
 from datetime import datetime
 from pathlib import Path
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
+from scipy.io import wavfile
+
+mpl.rc("axes", labelsize=14)
+mpl.rc("xtick", labelsize=12)
+mpl.rc("ytick", labelsize=12)
 import numpy as np
 import pandas as pd
 import scikitplot as skplt
 import seaborn as sns
 import tensorflow as tf
 import yaml
-from sklearn.metrics import classification_report
+from sklearn.metrics import auc, classification_report, roc_curve
+from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 
 tqdm.pandas()
@@ -27,23 +34,25 @@ def save_fig(fig_dir, fig_id, tight_layout=True, fig_extension="png", resolution
     plt.savefig(path, format=fig_extension, dpi=resolution)
 
 
-def model_metrics(y_test, y_pred, decoded, model_name):
+def model_metrics(y_true, y_pred, decoded, model_name, fig_dir):
     print(f"Decoded classes after applying inverse of label encoder: {decoded}")
 
     skplt.metrics.plot_confusion_matrix(
-        y_test,
+        y_true,
         y_pred,
         labels=decoded,
+        x_tick_rotation=90,
+        normalize="true",
         title_fontsize="large",
         text_fontsize="medium",
         cmap="Greens",
         figsize=(8, 6),
     )
     plt.show()
-
+    save_fig(fig_dir=fig_dir, fig_id=f"confusion_matrix_{model_name}")
     print(
         "The classification report for the model : \n\n"
-        + classification_report(y_test, y_pred)
+        + classification_report(y_true, y_pred)
     )
 
 
@@ -127,9 +136,15 @@ def fetch_dataset(extension="wav", dataset_file_name="dataset_df"):
     return data
 
 
-def make_ae_predictions(model, X, y, show=True):
+def make_ae_predictions(model, X, y, show=True, **kwargs):
+    pred_class = None
     if show:
         print("\n", X, "\t", y)
+    # assign the class to the file
+    if Path(X).parts[-2] == "normal":
+        true_class = "normal"
+    elif Path(X).parts[-2] == "abnormal":
+        true_class = "abnormal"
     # load the preprocessed audio (.npy) file
     X = np.load(X)
     y = np.load(y)
@@ -141,10 +156,16 @@ def make_ae_predictions(model, X, y, show=True):
     # loss = np.mean((y - y_pred) ** 2)
     # loss = rmse(y, y_pred)
     loss = np.mean(np.abs(y - y_pred))
+    if "threshold" in kwargs.keys():
+        print(f'Threshold: {kwargs["threshold"]}')
+        if loss <= kwargs["threshold"]:
+            pred_class = "normal"
+        elif loss > kwargs["threshold"]:
+            pred_class = "abnormal"
     if show:
-        print(f"Loss: {loss}")
+        print(f"Loss: {loss}, True class: {true_class}, Predicted class: {pred_class}")
 
-    return loss
+    return pd.Series([loss, true_class, pred_class])
 
 
 def make_predictions(model, le, X, y, show=True):
@@ -154,6 +175,7 @@ def make_predictions(model, le, X, y, show=True):
     y_mean = np.mean(y_pred, axis=0)
     y_pred = np.argmax(y_mean)
     y_pred = le.inverse_transform([y_pred])
+    y_pred = str(np.squeeze(y_pred))
     if show:
         print(f"True class: {y}. Predicted class: {y_pred}")
 
@@ -168,29 +190,62 @@ def loss_dist(model, results_dir, dataset_dir, id):
     train = pd.read_csv(dataset_dir / f"train_{id}.csv")
     valid = pd.read_csv(dataset_dir / f"valid_{id}.csv")
     test = pd.read_csv(dataset_dir / f"test_{id}.csv")
-    # remove the other normal files set aside for testing
-    # test = test.iloc[1982:]
+
+    # move normal files set aside for testing from test dataframe to train dataframe
+    new_df = test.loc[
+        test["X_test"].apply(lambda x: str(Path(x).parts[-2]) == "normal")
+    ]
+    new_df.columns = train.columns
+    train = pd.concat([train, new_df], ignore_index=True)
+    test = test.loc[
+        test["X_test"].apply(lambda x: str(Path(x).parts[-2]) == "abnormal")
+    ]
 
     start_time = datetime.now()
     print("======= computing reconstruction loss for train data ======= ")
-    train["loss"] = train.progress_apply(
+    train[["loss", "true_class", "pred_class"]] = train.progress_apply(
         lambda x: make_ae_predictions(model, x.X_train, x.y_train, show=False), axis=1
     )
     print("======= computing reconstruction loss for valid data ======= ")
-    valid["loss"] = valid.progress_apply(
+    valid[["loss", "true_class", "pred_class"]] = valid.progress_apply(
         lambda x: make_ae_predictions(model, x.X_valid, x.y_valid, show=False), axis=1
     )
     print("======= computing reconstruction loss for test data ======= ")
-    test["loss"] = test.progress_apply(
+    test[["loss", "true_class", "pred_class"]] = test.progress_apply(
         lambda x: make_ae_predictions(model, x.X_test, x.y_test, show=False), axis=1
     )
 
-    # train_pred = train_pred.reshape(train_pred.shape[0], train_pred.shape[2])
-    # valid_pred = history.predict(valid)
-    # valid_pred = valid_pred.reshape(valid_pred.shape[0], valid_pred.shape[2])
-    # test_pred = history.predict(test)
-    # test_pred = test_pred.reshape(test_pred.shape[0], test_pred.shape[2])
+    # compute/plot roc, auc...
+    data = pd.concat(
+        [
+            train.rename(columns={"X_train": "X", "y_train": "y"}),
+            valid.rename(columns={"X_valid": "X", "y_valid": "y"}),
+            test.rename(columns={"X_test": "X", "y_test": "y"}),
+        ],
+        ignore_index=True,
+    )
+    le = LabelEncoder()
+    data_fpr, data_tpr, data_thresholds = roc_curve(
+        le.fit_transform(data["true_class"]),
+        data["loss"],
+    )
+    data_roc_auc = auc(
+        data_fpr,
+        data_tpr,
+    )
 
+    plt.figure(figsize=(9, 9))
+    plt.plot(data_fpr, data_tpr, lw=2, label=f"AUC = {data_roc_auc:.4f}", alpha=0.8)
+    plt.plot([0, 1], [0, 1], linestyle="--", lw=2, color="r", label="Chance", alpha=0.8)
+    plt.xlim([-0.001, 1])
+    plt.ylim([0, 1.001])
+    plt.ylabel("True Positive Rate (Positive label: 1)")
+    plt.xlabel("False Positive Rate (Positive label: 1)")
+    plt.legend(loc="lower right")
+    plt.title(f"ROC curve of {model.name}.")
+    save_fig(fig_dir=results_dir, fig_id=f"roc_{model.name}")
+
+    # find threshold and plot reconstruction loss distribution
     train_threshold = train["loss"].quantile(0.95)
     train_threshold_std = np.mean(train["loss"]) + np.std(train["loss"])
     test_threshold = test["loss"].quantile(0.95)
@@ -246,6 +301,8 @@ def loss_dist(model, results_dir, dataset_dir, id):
     print(
         f"{id} loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
     )
+
+    return train_threshold_std
 
 
 def rmse(y_true, y_pred):
