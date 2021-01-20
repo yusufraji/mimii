@@ -112,8 +112,12 @@ def infer(args):
                     fig_dir=results_dir,
                 )
                 # Binarize the true and predicted classes
-                lb_true = label_binarize(test_data["true_class"], classes=["normal", "abnormal"])
-                lb_pred = label_binarize(test_data["pred_class"], classes=["normal", "abnormal"])
+                lb_true = label_binarize(
+                    test_data["true_class"], classes=["normal", "abnormal"]
+                )
+                lb_pred = label_binarize(
+                    test_data["pred_class"], classes=["normal", "abnormal"]
+                )
                 test_fpr, test_tpr, test_thresholds = roc_curve(
                     lb_true,
                     lb_pred,
@@ -150,9 +154,11 @@ def infer(args):
                     dataset_dir / f"{id}_prediction.csv",
                     index=False,
                 )
-                results[id].update({
-                    "roc_auc": float(np.round(roc_auc, 4)),
-                })
+                results[id].update(
+                    {
+                        "roc_auc": float(np.round(roc_auc, 4)),
+                    }
+                )
         # write results to yaml file
         with open(result_file, "w") as file:
             yaml.dump(results, file, default_flow_style=False)

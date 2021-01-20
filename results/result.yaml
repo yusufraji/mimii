@@ -1,144 +1,144 @@
 fan_id_00_0dB:
-  roc_auc: 0.5115
-  threshold: 0.3873
+  roc_auc: 0.5238
+  threshold: 0.3673
 fan_id_00_6dB:
-  roc_auc: 0.7067
-  threshold: 0.3122
+  roc_auc: 0.7054
+  threshold: 0.313
 fan_id_00_min6dB:
-  roc_auc: 0.5127
-  threshold: 0.4122
+  roc_auc: 0.5103
+  threshold: 0.4464
 fan_id_02_0dB:
-  roc_auc: 0.6672
-  threshold: 0.4035
+  roc_auc: 0.7062
+  threshold: 0.3972
 fan_id_02_6dB:
   roc_auc: 0.9306
-  threshold: 0.3828
+  threshold: 0.3832
 fan_id_02_min6dB:
-  roc_auc: 0.5378
-  threshold: 0.4216
+  roc_auc: 0.5461
+  threshold: 0.4113
 fan_id_04_0dB:
-  roc_auc: 0.5033
-  threshold: 0.3581
+  roc_auc: 0.5076
+  threshold: 0.3626
 fan_id_04_6dB:
-  roc_auc: 0.6525
-  threshold: 0.3341
+  roc_auc: 0.7172
+  threshold: 0.3302
 fan_id_04_min6dB:
-  roc_auc: 0.4659
-  threshold: 0.4835
+  roc_auc: 0.483
+  threshold: 0.4068
 fan_id_06_0dB:
-  roc_auc: 0.6293
-  threshold: 0.427
+  roc_auc: 0.6489
+  threshold: 0.4136
 fan_id_06_6dB:
-  roc_auc: 0.8343
-  threshold: 0.4085
+  roc_auc: 0.8467
+  threshold: 0.4074
 fan_id_06_min6dB:
-  roc_auc: 0.5381
-  threshold: 0.4319
+  roc_auc: 0.5117
+  threshold: 0.4274
 pump_id_00_0dB:
-  roc_auc: 0.5045
-  threshold: 0.4774
+  roc_auc: 0.5364
+  threshold: 0.6696
 pump_id_00_6dB:
   roc_auc: 0.6264
-  threshold: 0.4989
+  threshold: 0.5014
 pump_id_00_min6dB:
-  roc_auc: 0.5387
-  threshold: 0.7144
+  roc_auc: 0.5317
+  threshold: 0.495
 pump_id_02_0dB:
-  roc_auc: 0.6727
-  threshold: 0.4131
+  roc_auc: 0.6817
+  threshold: 0.4134
 pump_id_02_6dB:
-  roc_auc: 0.6998
-  threshold: 0.411
+  roc_auc: 0.7088
+  threshold: 0.405
 pump_id_02_min6dB:
-  roc_auc: 0.4904
-  threshold: 0.519
+  roc_auc: 0.5392
+  threshold: 0.4679
 pump_id_04_0dB:
   roc_auc: 0.9
-  threshold: 0.5379
+  threshold: 0.5658
 pump_id_04_6dB:
   roc_auc: 0.875
-  threshold: 0.5475
+  threshold: 0.5398
 pump_id_04_min6dB:
   roc_auc: 0.795
-  threshold: 0.4506
+  threshold: 0.4572
 pump_id_06_0dB:
-  roc_auc: 0.6786
-  threshold: 0.3761
+  roc_auc: 0.6737
+  threshold: 0.3936
 pump_id_06_6dB:
-  roc_auc: 0.8613
-  threshold: 0.3797
+  roc_auc: 0.8704
+  threshold: 0.3324
 pump_id_06_min6dB:
-  roc_auc: 0.5112
-  threshold: 0.3755
+  roc_auc: 0.5406
+  threshold: 0.3967
 slider_id_00_0dB:
-  roc_auc: 0.9333
-  threshold: 0.421
+  roc_auc: 0.9218
+  threshold: 0.4491
 slider_id_00_6dB:
-  roc_auc: 0.9555
-  threshold: 0.4357
+  roc_auc: 0.9583
+  threshold: 0.3965
 slider_id_00_min6dB:
-  roc_auc: 0.7927
-  threshold: 0.4359
+  roc_auc: 0.8306
+  threshold: 0.434
 slider_id_02_0dB:
-  roc_auc: 0.8337
-  threshold: 0.4587
+  roc_auc: 0.8356
+  threshold: 0.4631
 slider_id_02_6dB:
   roc_auc: 0.8748
-  threshold: 0.3981
+  threshold: 0.3904
 slider_id_02_min6dB:
-  roc_auc: 0.6465
-  threshold: 0.4841
+  roc_auc: 0.6562
+  threshold: 0.4561
 slider_id_04_0dB:
-  roc_auc: 0.5933
-  threshold: 0.5099
+  roc_auc: 0.5793
+  threshold: 0.5224
 slider_id_04_6dB:
-  roc_auc: 0.5626
-  threshold: 0.5511
+  roc_auc: 0.5429
+  threshold: 0.5537
 slider_id_04_min6dB:
-  roc_auc: 0.5342
-  threshold: 0.4938
+  roc_auc: 0.5426
+  threshold: 0.4873
 slider_id_06_0dB:
   roc_auc: 0.4616
-  threshold: 0.6656
+  threshold: 0.5798
 slider_id_06_6dB:
-  roc_auc: 0.5449
-  threshold: 0.5536
+  roc_auc: 0.5621
+  threshold: 0.5022
 slider_id_06_min6dB:
-  roc_auc: 0.5449
-  threshold: 0.7362
+  roc_auc: 0.5796
+  threshold: 0.7974
 valve_id_00_0dB:
-  roc_auc: 0.4713
-  threshold: 0.5417
+  roc_auc: 0.4629
+  threshold: 0.5267
 valve_id_00_6dB:
-  roc_auc: 0.5086
-  threshold: 0.66
+  roc_auc: 0.4835
+  threshold: 0.5994
 valve_id_00_min6dB:
-  roc_auc: 0.5214
-  threshold: 0.497
+  roc_auc: 0.5047
+  threshold: 0.5014
 valve_id_02_0dB:
-  roc_auc: 0.5583
-  threshold: 0.4862
+  roc_auc: 0.55
+  threshold: 0.4817
 valve_id_02_6dB:
-  roc_auc: 0.4958
-  threshold: 0.5166
+  roc_auc: 0.525
+  threshold: 0.4974
 valve_id_02_min6dB:
-  roc_auc: 0.5083
-  threshold: 0.5238
+  roc_auc: 0.55
+  threshold: 0.4765
 valve_id_04_0dB:
-  roc_auc: 0.5083
-  threshold: 0.528
+  roc_auc: 0.5375
+  threshold: 0.6541
 valve_id_04_6dB:
-  roc_auc: 0.4125
-  threshold: 0.5734
+  roc_auc: 0.4
+  threshold: 0.5148
 valve_id_04_min6dB:
-  roc_auc: 0.5083
-  threshold: 0.4706
+  roc_auc: 0.5167
+  threshold: 0.5455
 valve_id_06_0dB:
-  roc_auc: 0.4583
-  threshold: 0.7403
-valve_id_06_6dB:
   roc_auc: 0.4792
-  threshold: 0.752
+  threshold: 0.4947
+valve_id_06_6dB:
+  roc_auc: 0.5375
+  threshold: 0.5351
 valve_id_06_min6dB:
-  roc_auc: 0.4625
-  threshold: 0.5603
+  roc_auc: 0.4583
+  threshold: 0.5807
