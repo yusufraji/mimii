@@ -1,2 +1,144 @@
 fan_id_00_0dB:
-  threshold: 0.688
+  roc_auc: 0.5115
+  threshold: 0.3873
+fan_id_00_6dB:
+  roc_auc: 0.7067
+  threshold: 0.3122
+fan_id_00_min6dB:
+  roc_auc: 0.5127
+  threshold: 0.4122
+fan_id_02_0dB:
+  roc_auc: 0.6672
+  threshold: 0.4035
+fan_id_02_6dB:
+  roc_auc: 0.9306
+  threshold: 0.3828
+fan_id_02_min6dB:
+  roc_auc: 0.5378
+  threshold: 0.4216
+fan_id_04_0dB:
+  roc_auc: 0.5033
+  threshold: 0.3581
+fan_id_04_6dB:
+  roc_auc: 0.6525
+  threshold: 0.3341
+fan_id_04_min6dB:
+  roc_auc: 0.4659
+  threshold: 0.4835
+fan_id_06_0dB:
+  roc_auc: 0.6293
+  threshold: 0.427
+fan_id_06_6dB:
+  roc_auc: 0.8343
+  threshold: 0.4085
+fan_id_06_min6dB:
+  roc_auc: 0.5381
+  threshold: 0.4319
+pump_id_00_0dB:
+  roc_auc: 0.5045
+  threshold: 0.4774
+pump_id_00_6dB:
+  roc_auc: 0.6264
+  threshold: 0.4989
+pump_id_00_min6dB:
+  roc_auc: 0.5387
+  threshold: 0.7144
+pump_id_02_0dB:
+  roc_auc: 0.6727
+  threshold: 0.4131
+pump_id_02_6dB:
+  roc_auc: 0.6998
+  threshold: 0.411
+pump_id_02_min6dB:
+  roc_auc: 0.4904
+  threshold: 0.519
+pump_id_04_0dB:
+  roc_auc: 0.9
+  threshold: 0.5379
+pump_id_04_6dB:
+  roc_auc: 0.875
+  threshold: 0.5475
+pump_id_04_min6dB:
+  roc_auc: 0.795
+  threshold: 0.4506
+pump_id_06_0dB:
+  roc_auc: 0.6786
+  threshold: 0.3761
+pump_id_06_6dB:
+  roc_auc: 0.8613
+  threshold: 0.3797
+pump_id_06_min6dB:
+  roc_auc: 0.5112
+  threshold: 0.3755
+slider_id_00_0dB:
+  roc_auc: 0.9333
+  threshold: 0.421
+slider_id_00_6dB:
+  roc_auc: 0.9555
+  threshold: 0.4357
+slider_id_00_min6dB:
+  roc_auc: 0.7927
+  threshold: 0.4359
+slider_id_02_0dB:
+  roc_auc: 0.8337
+  threshold: 0.4587
+slider_id_02_6dB:
+  roc_auc: 0.8748
+  threshold: 0.3981
+slider_id_02_min6dB:
+  roc_auc: 0.6465
+  threshold: 0.4841
+slider_id_04_0dB:
+  roc_auc: 0.5933
+  threshold: 0.5099
+slider_id_04_6dB:
+  roc_auc: 0.5626
+  threshold: 0.5511
+slider_id_04_min6dB:
+  roc_auc: 0.5342
+  threshold: 0.4938
+slider_id_06_0dB:
+  roc_auc: 0.4616
+  threshold: 0.6656
+slider_id_06_6dB:
+  roc_auc: 0.5449
+  threshold: 0.5536
+slider_id_06_min6dB:
+  roc_auc: 0.5449
+  threshold: 0.7362
+valve_id_00_0dB:
+  roc_auc: 0.4713
+  threshold: 0.5417
+valve_id_00_6dB:
+  roc_auc: 0.5086
+  threshold: 0.66
+valve_id_00_min6dB:
+  roc_auc: 0.5214
+  threshold: 0.497
+valve_id_02_0dB:
+  roc_auc: 0.5583
+  threshold: 0.4862
+valve_id_02_6dB:
+  roc_auc: 0.4958
+  threshold: 0.5166
+valve_id_02_min6dB:
+  roc_auc: 0.5083
+  threshold: 0.5238
+valve_id_04_0dB:
+  roc_auc: 0.5083
+  threshold: 0.528
+valve_id_04_6dB:
+  roc_auc: 0.4125
+  threshold: 0.5734
+valve_id_04_min6dB:
+  roc_auc: 0.5083
+  threshold: 0.4706
+valve_id_06_0dB:
+  roc_auc: 0.4583
+  threshold: 0.7403
+valve_id_06_6dB:
+  roc_auc: 0.4792
+  threshold: 0.752
+valve_id_06_min6dB:
+  roc_auc: 0.4625
+  threshold: 0.5603

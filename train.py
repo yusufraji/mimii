@@ -44,7 +44,7 @@ from utils import (
     save_fig,
 )
 
-silence_tensorflow()
+# silence_tensorflow()
 
 tf.config.experimental.list_physical_devices("GPU")
 physical_devices = tf.config.list_physical_devices("GPU")
@@ -283,21 +283,39 @@ def fit_model(
         leave_epoch_progress=True, leave_overall_progress=True
     )
     checkpoint_cb = ModelCheckpoint(
-        f"{results_dir}/{model.name}.h5", save_best_only=True
+        filepath=f"{results_dir}/{model.name}.h5",
+        monitor="threshold_diff",
+        verbose=1,
+        save_best_only=True,
+        mode="min",
     )
     early_stopping_cb = EarlyStopping(
-        monitor="threshold_diff", patience=3, mode="max", restore_best_weights=True
+        monitor="threshold_diff",
+        patience=10,
+        verbose=2,
+        mode="max",
+        restore_best_weights=True,
     )
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
     tensorboard_cb = TensorBoard(log_dir=f"{logs_dir}/{model_name}")
     loss_dist_cb = LossDistributionCallback(dataset_dir, id)
     # Stream the epoch loss to a file.
     txt_log = open(f"{logs_dir}_loss_log.txt", mode="wt", buffering=1)
+
+    def model_best(logs, txt_log):
+        """
+        docstring
+        """
+        txt_log.write(
+            f'model keys: {logs.keys()}, loss: {logs["loss"]}\n',
+        )
+        txt_log.close()
+
     save_op_cb = LambdaCallback(
         on_epoch_end=lambda epoch, logs: txt_log.write(
-            f'epoch: {epoch}, loss: {logs["loss"]}, threshold_diff: {logs["threshold_diff"]}\n'
+            f'model keys: {logs.keys()}, epoch: {epoch}, loss: {logs["loss"]}, threshold_diff: {logs["threshold_diff"]}\n'
         ),
-        on_train_end=lambda logs: txt_log.close(),
+        on_train_end=lambda logs: model_best(logs, txt_log),
     )
 
     start_time = datetime.now()
@@ -307,16 +325,17 @@ def fit_model(
         validation_data=valid_gen,
         epochs=config["fit"]["epochs"],
         validation_steps=int(valid_size / config["fit"]["batch_size"]),
-        verbose=0,
+        verbose=2,
         callbacks=[
-            tqdm_cb,
-            checkpoint_cb,
-            tensorboard_cb,
-            early_stopping_cb,
+            # tqdm_cb,
             loss_dist_cb,
+            early_stopping_cb,
+            # checkpoint_cb,
+            tensorboard_cb,
             save_op_cb,
         ],
     )
+    model.save(f"{results_dir}/{model.name}.h5")
 
     time_elapsed = datetime.now() - start_time
     print(f"{model.name} train elapsed (hh:mm:ss.ms) {time_elapsed}")

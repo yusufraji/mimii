@@ -127,7 +127,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="enc_conv2d_elu_2",
     )(x)
-    x = BatchNormalization(name="enc_batchnorm_2")(x)
+    # x = BatchNormalization(name="enc_batchnorm_2")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_2")(x)
     x = Conv2D(
         32,
@@ -136,7 +136,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="enc_conv2d_elu_3",
     )(x)
-    x = BatchNormalization(name="enc_batchnorm_3")(x)
+    # x = BatchNormalization(name="enc_batchnorm_3")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_3")(x)
     x = Conv2D(
         16,
@@ -145,12 +145,12 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="enc_conv2d_elu_4",
     )(x)
-    x = BatchNormalization(name="enc_batchnorm_4")(x)
+    # x = BatchNormalization(name="enc_batchnorm_4")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_4")(x)
     x = Conv2D(
         8, kernel_size=(3, 3), activation="elu", padding="same", name="enc_conv2d_elu_5"
     )(x)
-    x = BatchNormalization(name="enc_batchnorm_5")(x)
+    # x = BatchNormalization(name="enc_batchnorm_5")(x)
     x = MaxPooling2D(pool_size=(2, 2), padding="same", name="enc_maxpool2d_5")(x)
 
     # get the dimension before flatten
@@ -160,21 +160,21 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     x = Flatten(name="enc_flatten_1")(x)
     # x = BatchNormalization(name="batch_norm_6")(x)
     # x = Dropout(0.2, name="dropout_1")(x)
-    x = Dense(1, activation="elu", kernel_regularizer="l1_l2", name="enc_dense_1")(x)
+    e = Dense(1, activation="elu", kernel_regularizer="l1_l2", name="enc_dense_1")(x)
     # x = BatchNormalization(name="batch_norm_7")(x)
-    e = Dropout(0.2, name="enc_dropout_1")(x)
+    # e = Dropout(0.2, name="enc_dropout_1")(x)
     ##### ENCODER ENDS #####
 
     ##### DECODER STARTS #####
     x = Dense(p * q * r, activation="elu", name="dec_dense_1")(e)
     # x = BatchNormalization(name="batch_norm_8")(x)
-    x = Dropout(0.2, name="dec_dropout_1")(x)
+    # x = Dropout(0.2, name="dec_dropout_1")(x)
     x = tf.reshape(x, [-1, p, q, r], name="dec_reshape_1")
 
     x = Conv2D(
         8, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_1"
     )(x)
-    x = BatchNormalization(name="dec_batchnorm_1")(x)
+    # x = BatchNormalization(name="dec_batchnorm_1")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_1")(x)
     x = Conv2D(
         16,
@@ -183,7 +183,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="dec_conv2d_elu_2",
     )(x)
-    x = BatchNormalization(name="dec_batchnorm_2")(x)
+    # x = BatchNormalization(name="dec_batchnorm_2")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_2")(x)
     x = Conv2D(
         32,
@@ -192,7 +192,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="dec_conv2d_elu_3",
     )(x)
-    x = BatchNormalization(name="dec_batchnorm_3")(x)
+    # x = BatchNormalization(name="dec_batchnorm_3")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_3")(x)
     x = Conv2D(
         64,
@@ -201,7 +201,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
         padding="same",
         name="dec_conv2d_elu_4",
     )(x)
-    x = BatchNormalization(name="dec_batchnorm_4")(x)
+    # x = BatchNormalization(name="dec_batchnorm_4")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_4")(x)
     x = Conv2D(
         128,
@@ -213,7 +213,7 @@ def MyConv2DAE(ID, N_CHANNELS=8, SR=16000, DT=10.0, N_MELS=128, HOP_LENGTH=512):
     x = Conv2D(
         8, kernel_size=(3, 3), activation="elu", padding="same", name="dec_conv2d_elu_6"
     )(x)
-    x = BatchNormalization(name="dec_batchnorm_5")(x)
+    # x = BatchNormalization(name="dec_batchnorm_5")(x)
     x = UpSampling2D(size=(2, 2), name="dec_upsampling2d_5")(x)
     # crop the output
     # reference:

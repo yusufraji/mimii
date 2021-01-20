@@ -3,6 +3,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+
+mpl.rc("axes", labelsize=14)
+mpl.rc("xtick", labelsize=12)
+mpl.rc("ytick", labelsize=12)
+
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
@@ -12,7 +19,7 @@ silence_tensorflow()
 
 import tensorflow as tf
 from sklearn.metrics import auc, roc_curve
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import label_binarize
 
 tf.config.experimental.list_physical_devices("GPU")
 import yaml
@@ -21,7 +28,7 @@ from numba import cuda
 from tensorflow.keras.metrics import MeanSquaredError as mse
 from tensorflow.keras.models import load_model
 
-from utils import make_ae_predictions, make_predictions, model_metrics, rmse
+from utils import make_ae_predictions, make_predictions, model_metrics, rmse, save_fig
 
 
 def infer(args):
@@ -63,7 +70,7 @@ def infer(args):
 
         result_file = cur_dir / config["results_dir"] / config["result_file"]
         with open(result_file, "r") as file:
-            train_results = yaml.safe_load(file)
+            results = yaml.safe_load(file)
 
         dataset_df = pd.read_csv(cur_dir / config["dataset_dir"] / "dataset_df.csv")
 
@@ -93,7 +100,7 @@ def infer(args):
                         model,
                         x.X_test,
                         x.y_test,
-                        threshold=train_results[id]["threshold"],
+                        threshold=results[id]["threshold"],
                     ),
                     axis=1,
                 )
@@ -104,12 +111,35 @@ def infer(args):
                     model_name=model.name,
                     fig_dir=results_dir,
                 )
-                le = LabelEncoder()
+                # Binarize the true and predicted classes
+                lb_true = label_binarize(test_data["true_class"], classes=["normal", "abnormal"])
+                lb_pred = label_binarize(test_data["pred_class"], classes=["normal", "abnormal"])
                 test_fpr, test_tpr, test_thresholds = roc_curve(
-                    le.fit_transform(test_data["true_class"]),
-                    test_data["loss"],
+                    lb_true,
+                    lb_pred,
                 )
-                train_roc_auc = auc(test_fpr, test_tpr)
+                roc_auc = auc(test_fpr, test_tpr)
+
+                plt.figure(figsize=(9, 9))
+                plt.plot(
+                    test_fpr, test_tpr, lw=2, label=f"AUC = {roc_auc:.4f}", alpha=0.8
+                )
+                plt.plot(
+                    [0, 1],
+                    [0, 1],
+                    linestyle="--",
+                    lw=2,
+                    color="r",
+                    label="Chance",
+                    alpha=0.8,
+                )
+                plt.xlim([-0.001, 1])
+                plt.ylim([0, 1.001])
+                plt.ylabel("True Positive Rate (Positive label: 1)")
+                plt.xlabel("False Positive Rate (Positive label: 1)")
+                plt.legend(loc="lower right")
+                plt.title(f"ROC curve of {model.name}.")
+                save_fig(fig_dir=results_dir, fig_id=f"inference_roc_{model.name}")
 
                 time_elapsed = datetime.now() - start_time
                 print(
@@ -120,7 +150,12 @@ def infer(args):
                     dataset_dir / f"{id}_prediction.csv",
                     index=False,
                 )
-
+                results[id].update({
+                    "roc_auc": float(np.round(roc_auc, 4)),
+                })
+        # write results to yaml file
+        with open(result_file, "w") as file:
+            yaml.dump(results, file, default_flow_style=False)
         sys.stdout.close()
 
     elif args.model == "myconv2d":

@@ -15,7 +15,7 @@ import seaborn as sns
 import tensorflow as tf
 import yaml
 from sklearn.metrics import auc, classification_report, roc_curve
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import label_binarize
 from tqdm import tqdm
 
 tqdm.pandas()
@@ -224,9 +224,10 @@ def loss_dist(model, results_dir, dataset_dir, id):
         ],
         ignore_index=True,
     )
-    le = LabelEncoder()
+    # binarize the true classes
+    lb_true = label_binarize(data["true_class"], classes=["normal", "abnormal"])
     data_fpr, data_tpr, data_thresholds = roc_curve(
-        le.fit_transform(data["true_class"]),
+        lb_true,
         data["loss"],
     )
     data_roc_auc = auc(
