@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+
+mkdir ./dataset
+cd dataset/
 
 mkdir ./min6dB
 mkdir ./6dB

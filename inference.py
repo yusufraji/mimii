@@ -12,8 +12,8 @@ mpl.rc("ytick", labelsize=12)
 
 import numpy as np
 import pandas as pd
-from scipy.io import wavfile
 from silence_tensorflow import silence_tensorflow
+from sklearn.preprocessing import LabelEncoder
 
 silence_tensorflow()
 
@@ -25,10 +25,9 @@ tf.config.experimental.list_physical_devices("GPU")
 import yaml
 from kapre.time_frequency import STFT, ApplyFilterbank, Magnitude, MagnitudeToDecibel
 from numba import cuda
-from tensorflow.keras.metrics import MeanSquaredError as mse
 from tensorflow.keras.models import load_model
 
-from utils import make_ae_predictions, make_predictions, model_metrics, rmse, save_fig
+from utils import make_ae_predictions, make_predictions, model_metrics, save_fig
 
 
 def infer(args):
@@ -43,7 +42,7 @@ def infer(args):
         config = yaml.safe_load(stream)
 
     models = {
-        "myconv2d": load_model(
+        "classifier": load_model(
             results_dir / "2d_convolution.h5",
             custom_objects={
                 "STFT": STFT,
@@ -52,7 +51,7 @@ def infer(args):
                 "MagnitudeToDecibel": MagnitudeToDecibel,
             },
         ),
-        "myconv2dae": None,
+        "anomaly_detector": None,
     }
     assert args.model in models.keys(), f"{args.model} is unavailable."
     assert config["feature"]["n_classes"] in [
@@ -60,7 +59,7 @@ def infer(args):
         16,
     ], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
-    if args.model == "myconv2dae":
+    if args.model == "anomaly_detector":
         # redirect console output to txt file
         sys.stdout = open(Path(config["logs_dir"]) / "infer_autoencoder.txt", "w")
         # load the test set
@@ -74,6 +73,7 @@ def infer(args):
 
         dataset_df = pd.read_csv(cur_dir / config["dataset_dir"] / "dataset_df.csv")
 
+        inference_start_time = datetime.now()
         for db in np.unique(dataset_df.db):
             for machine_type_id in np.unique(dataset_df.machine_type_id):
 
@@ -91,7 +91,6 @@ def infer(args):
                 test_data = pd.read_csv(dataset_dir / f"test_{id}.csv")
                 model = load_model(
                     results_dir / f"{id}.h5",
-                    custom_objects={"rmse": rmse},
                 )
 
                 start_time = datetime.now()
@@ -100,7 +99,7 @@ def infer(args):
                         model,
                         x.X_test,
                         x.y_test,
-                        threshold=results[id]["threshold"],
+                        threshold=results[id]["threshold"]["one_std"],
                     ),
                     axis=1,
                 )
@@ -124,6 +123,7 @@ def infer(args):
                 )
                 roc_auc = auc(test_fpr, test_tpr)
 
+                # plot the ROC curve
                 plt.figure(figsize=(9, 9))
                 plt.plot(
                     test_fpr, test_tpr, lw=2, label=f"AUC = {roc_auc:.4f}", alpha=0.8
@@ -159,12 +159,15 @@ def infer(args):
                         "roc_auc": float(np.round(roc_auc, 4)),
                     }
                 )
+
+        total_time_elapsed = datetime.now() - inference_start_time
+        print(f"inference elapsed (hh:mm:ss.ms) {total_time_elapsed}")
         # write results to yaml file
         with open(result_file, "w") as file:
             yaml.dump(results, file, default_flow_style=False)
         sys.stdout.close()
 
-    elif args.model == "myconv2d":
+    elif args.model == "classifier":
         # redirect console output to txt file
         sys.stdout = open(Path(config["logs_dir"]) / "infer_classifier.txt", "w")
         # load the test set
@@ -210,8 +213,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="myconv2dae",
-        help="model to train. (myconv1d, myconv2d, mylstm, myconv1dae, myconv2dae",
+        default="anomaly_detector",
+        help="model to train. (classifier, anomaly_detector",
     )
     args, _ = parser.parse_known_args()
 

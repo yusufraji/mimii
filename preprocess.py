@@ -4,9 +4,8 @@ from pathlib import Path
 import librosa
 import numpy as np
 import yaml
-from librosa.feature.spectral import melspectrogram
 from scipy.io import wavfile
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from tqdm import tqdm
 
 start_time = datetime.now()
@@ -64,7 +63,6 @@ for item in tqdm(wav_files, desc="preprocessing wav files.", leave=False):
             S_db_tmp, ((0, 0), (0, n_frames - S_db_tmp.shape[1])), "constant"
         )
         # normalize
-        minmax = MinMaxScaler()
         ss = StandardScaler()
         S_db[:, :, j] = ss.fit_transform(S_db[:, :, j])
 

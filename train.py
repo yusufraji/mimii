@@ -5,16 +5,11 @@ import warnings
 from datetime import datetime
 from pathlib import Path
 
-import librosa
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import tensorflow as tf
 import tensorflow_addons as tfa
 import yaml
-from librosa.core.spectrum import amplitude_to_db
-from librosa.feature.spectral import melspectrogram
 from numba import cuda
 from scipy.io import wavfile
 from silence_tensorflow import silence_tensorflow
@@ -23,28 +18,15 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.callbacks import (
     EarlyStopping,
     LambdaCallback,
-    LearningRateScheduler,
     ModelCheckpoint,
     TensorBoard,
 )
-from tensorflow.keras.models import load_model
 from tensorflow.keras.utils import plot_model, to_categorical
-from tensorflow.python.keras.engine.training import Model
-from tqdm import tqdm
 
-from models import MyConv2D, MyConv2DAE
-from utils import (
-    LossDistributionCallback,
-    fetch_dataset,
-    loss_dist,
-    make_ae_predictions,
-    make_predictions,
-    model_metrics,
-    plot_history,
-    save_fig,
-)
+from models import anomaly_detector, classifier
+from utils import LossDistributionCallback, fetch_dataset, loss_dist, plot_history
 
-# silence_tensorflow()
+silence_tensorflow()
 
 tf.config.experimental.list_physical_devices("GPU")
 physical_devices = tf.config.list_physical_devices("GPU")
@@ -55,7 +37,7 @@ except:
     pass
 warnings.filterwarnings(action="ignore")
 
-
+# data generator for AE
 class DataGeneratorAE(tf.keras.utils.Sequence):
     def __init__(
         self,
@@ -179,6 +161,26 @@ class DataGenerator(tf.keras.utils.Sequence):
 
 # create train test and valid set
 def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False):
+    """splits data into training, validation, and testing sets
+
+    Args:
+        data (dataframe): all datasets to be splitted
+        n_classes (int, optional): number of classes. Defaults to 16.
+        test_size (float, optional): ratio of test data. Defaults to 0.2.
+        valid_size (float, optional): ratio of validation data. Defaults to 0.1.
+        ae (bool, optional): true for autoencoder/anomaly detector. Defaults to False.
+
+    Returns:
+        X_train (list): training data
+        X_valid (list): validation data
+        X_test (list): testing data
+        y_train (list): training target
+        y_valid (list): validation target
+        y_test (list): testing target
+        train_df (dataframe): training dataframe
+        valid_df (dataframe): validation dataframe
+        test_df (dataframe): testing dataframe
+    """
 
     if ae:
         # Split train, test, and valid set
@@ -193,6 +195,8 @@ def train_test_valid(data, n_classes=16, test_size=0.2, valid_size=0.1, ae=False
         X_test = X_test.values.tolist()
         X_test.extend(data["abnormal"].values.tolist())
 
+        # set y_train, y_valid and y_test to X_train, X_valid and X_test for
+        # autoencoder
         y_train, y_valid, y_test = X_train, X_valid, X_test
 
         train_df = pd.DataFrame()
@@ -266,8 +270,23 @@ def fit_model(
     results_dir,
     logs_dir,
 ):
-    """
-    docstring
+    """fits/trains the model
+
+    Args:
+        model (model): compiled model
+        config (dict): configuration dictionary
+        id (string): identification tag for saving results
+        ae (bool): true for autoencoder/anomaly detector
+        train_size (int): size of training data
+        valid_size (int): size of validation data
+        train_gen (gen): training generator
+        valid_gen (gen): validation generator
+        dataset_dir (path): dataset directory
+        results_dir (path): results directory
+        logs_dir (path): logs directory
+
+    Returns:
+        model: trained model
     """
     model.summary()
     with open(f"{results_dir}/{model.name}_report.txt", "w") as fh:
@@ -284,16 +303,16 @@ def fit_model(
     )
     checkpoint_cb = ModelCheckpoint(
         filepath=f"{results_dir}/{model.name}.h5",
-        monitor="threshold_diff",
+        monitor="val_loss",
         verbose=1,
         save_best_only=True,
         mode="min",
     )
     early_stopping_cb = EarlyStopping(
-        monitor="threshold_diff",
+        monitor="val_loss",
         patience=10,
         verbose=2,
-        mode="max",
+        mode="min",
         restore_best_weights=True,
     )
     model_name = f'{model.name}-{time.strftime("run_%Y_%m_%d-%H_%M_%S")}'
@@ -313,7 +332,7 @@ def fit_model(
 
     save_op_cb = LambdaCallback(
         on_epoch_end=lambda epoch, logs: txt_log.write(
-            f'model keys: {logs.keys()}, epoch: {epoch}, loss: {logs["loss"]}, threshold_diff: {logs["threshold_diff"]}\n'
+            f'model keys: {logs.keys()}, epoch: {epoch}, loss: {logs["loss"]}, val_loss: {logs["val_loss"]}\n'
         ),
         on_train_end=lambda logs: model_best(logs, txt_log),
     )
@@ -328,10 +347,10 @@ def fit_model(
         verbose=2,
         callbacks=[
             # tqdm_cb,
-            loss_dist_cb,
+            # loss_dist_cb,
             early_stopping_cb,
-            # checkpoint_cb,
-            tensorboard_cb,
+            checkpoint_cb,
+            # tensorboard_cb,
             save_op_cb,
         ],
     )
@@ -350,8 +369,10 @@ def fit_model(
 
 
 def train(args):
-    """
-    docstring
+    """trains the model
+
+    Args:
+        args (dict): arguments parsed
     """
     global cur_dir
     cur_dir = Path.cwd()
@@ -361,14 +382,14 @@ def train(args):
         config = yaml.safe_load(stream)
 
     models = {
-        "myconv2d": MyConv2D(
+        "classifier": classifier(
             N_CLASSES=config["feature"]["n_classes"],
             SR=config["feature"]["sr"],
             DT=config["feature"]["dt"],
             N_CHANNELS=config["feature"]["n_channels"],
         ),
-        "myconv2dae": MyConv2DAE(
-            ID="2d_convolution_autoencoder",
+        "anomaly_detector": anomaly_detector(
+            ID="autoencoder",
             N_CHANNELS=config["feature"]["n_channels"],
             SR=config["feature"]["sr"],
             DT=config["feature"]["dt"],
@@ -377,18 +398,13 @@ def train(args):
         ),
     }
     assert args.model in models.keys(), f"{args.model} is unavailable."
-    assert config["feature"]["n_classes"] in [
-        4,
-        16,
-    ], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
 
     # create directories
     Path.mkdir(cur_dir / config["results_dir"], parents=True, exist_ok=True)
     Path.mkdir(cur_dir / config["logs_dir"], parents=True, exist_ok=True)
 
-    # set y_train, y_valid and y_test to X_train, X_valid and X_test if model is
-    # an autoencoder, and create a new data generatore for ae
-    if args.model == "myconv2dae":
+    if args.model == "anomaly_detector":
+        ae = True
         # redirect console output to txt file
         sys.stdout = open(Path(config["logs_dir"]) / "train_autoencoder.txt", "w")
 
@@ -399,7 +415,6 @@ def train(args):
         results = {}
 
         start_time = datetime.now()
-        ae = True
         # fetch dataset
         if "dataset_ae_df.csv" in [
             x.name for x in (cur_dir / config["dataset_dir"]).iterdir()
@@ -492,7 +507,7 @@ def train(args):
                 )
 
                 # fit the model
-                model = MyConv2DAE(
+                model = anomaly_detector(
                     ID=id,
                     N_CHANNELS=config["feature"]["n_channels"],
                     SR=config["feature"]["sr"],
@@ -514,13 +529,20 @@ def train(args):
                     logs_dir=logs_dir,
                 )
                 # plot the loss distribution of train, valid and test
-                threshold = loss_dist(
+                threshold_one_std, threshold_two_std, threshold_three_std = loss_dist(
                     model=fitted_model,
                     results_dir=results_dir,
                     dataset_dir=dataset_dir,
                     id=id,
                 )
-                results[id] = {"threshold": float(np.round(threshold, 4))}
+
+                results[id] = {
+                    "threshold": {
+                        "one_std": float(np.round(threshold_one_std, 4)),
+                        "two_std": float(np.round(threshold_two_std, 4)),
+                        "three_std": float(np.round(threshold_three_std, 4)),
+                    }
+                }
 
         # write results to yaml file
         with open(result_file, "w") as file:
@@ -529,14 +551,18 @@ def train(args):
         print(f"{args.model} elapsed (hh:mm:ss.ms) {time_elapsed}")
         sys.stdout.close()
 
-    # dataset generator
-    elif args.model == "myconv2d":
+    elif args.model == "classifier":
+        ae = False
+        assert config["feature"]["n_classes"] in [
+            4,
+            16,
+        ], f'n_classes({config["feature"]["n_classes"]}) must either be 4 or 16'
+
         # redirect console output to txt file
         sys.stdout = open(Path(config["logs_dir"]) / "train_classifier.txt", "w")
 
-        ae = False
-        results_dir = cur_dir / config["results_dir"] / "myconv2d"
-        logs_dir = cur_dir / config["logs_dir"] / "myconv2d"
+        results_dir = cur_dir / config["results_dir"] / "classifier"
+        logs_dir = cur_dir / config["logs_dir"] / "classifier"
         # create directories
         Path.mkdir(results_dir, parents=True, exist_ok=True)
         Path.mkdir(logs_dir, parents=True, exist_ok=True)
@@ -630,8 +656,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="myconv2dae",
-        help="model to train. (myconv1d, myconv2d, mylstm, myconv1dae, myconv2dae",
+        default="anomaly_detector",
+        help="model to train. (classifier, anomaly_detector",
     )
     args, _ = parser.parse_known_args()
 

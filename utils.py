@@ -4,6 +4,7 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy.io import wavfile
+from tensorflow.keras.losses import KLDivergence
 
 mpl.rc("axes", labelsize=14)
 mpl.rc("xtick", labelsize=12)
@@ -153,9 +154,20 @@ def make_ae_predictions(model, X, y, show=True, **kwargs):
     y = y[np.newaxis, :, :, :]
     # predict and compute the loss
     y_pred = model.predict(X)
-    # loss = np.mean((y - y_pred) ** 2)
-    # loss = rmse(y, y_pred)
-    loss = np.mean(np.abs(y - y_pred))
+
+    # compute the MSE loss
+    mse = tf.keras.losses.MeanSquaredError()
+    loss = mse(np.atleast_1d(y), np.atleast_1d(y_pred)).numpy()
+
+    # # compute the MAE loss
+    # mae = tf.keras.losses.MeanAbsoluteError()
+    # loss = mae(np.atleast_1d(y), np.atleast_1d(y_pred)).numpy()
+
+    # # compute the KLDivergence loss
+    # kl = tf.keras.losses.KLDivergence()
+    # loss = kl(np.atleast_1d(y), np.atleast_1d(y_pred)).numpy()
+
+    # loss = np.mean(np.abs(y - y_pred))
     if "threshold" in kwargs.keys():
         print(f'Threshold: {kwargs["threshold"]}')
         if loss <= kwargs["threshold"]:
@@ -248,52 +260,91 @@ def loss_dist(model, results_dir, dataset_dir, id):
 
     # find threshold and plot reconstruction loss distribution
     train_threshold = train["loss"].quantile(0.95)
-    train_threshold_std = np.mean(train["loss"]) + np.std(train["loss"])
+    train_threshold_one_std = np.mean(train["loss"]) + np.std(train["loss"])
+    train_threshold_two_std = np.mean(train["loss"]) + (2 * np.std(train["loss"]))
+    train_threshold_three_std = np.mean(train["loss"]) + (3 * np.std(train["loss"]))
     test_threshold = test["loss"].quantile(0.95)
-    test_threshold_std = np.mean(test["loss"]) + np.std(test["loss"])
+    test_threshold_one_std = np.mean(test["loss"]) + np.std(test["loss"])
+    test_threshold_two_std = np.mean(test["loss"]) + (2 * np.std(test["loss"]))
+    test_threshold_three_std = np.mean(test["loss"]) + (3 * np.std(test["loss"]))
 
     plt.figure(figsize=(16, 9))
     sns.distplot(
         train["loss"], kde=True, label="train", color=sns.color_palette("bright")[0]
     )
-    plt.vlines(train_threshold, 0, 5.5, linestyles="dashed", colors="k")
+    # plt.vlines(train_threshold, 0, 10, linestyles="dashed", colors="k")
+    # plt.text(
+    #     train_threshold,
+    #     10,
+    #     f"train threshold, 95th Percentile @ {train_threshold:.3f}",
+    #     size=10,
+    #     alpha=0.8,
+    # )
+    plt.vlines(train_threshold_one_std, 0, 9.5, linestyles="dashed", colors="r")
     plt.text(
-        train_threshold,
-        5.5,
-        f"train threshold, 95th Percentile @ {train_threshold:.3f}",
+        train_threshold_one_std,
+        9.5,
+        f"train threshold, 1 std above mean @ {train_threshold_one_std:.3f}",
         size=10,
         alpha=0.8,
     )
-    plt.vlines(train_threshold_std, 0, 6, linestyles="dashed", colors="r")
+    plt.vlines(train_threshold_two_std, 0, 9, linestyles="dashed", colors="r")
     plt.text(
-        train_threshold_std,
-        6,
-        f"train threshold, one std above mean @ {train_threshold_std:.3f}",
+        train_threshold_two_std,
+        9,
+        f"train threshold, 2 std above mean @ {train_threshold_two_std:.3f}",
         size=10,
         alpha=0.8,
     )
+    plt.vlines(train_threshold_three_std, 0, 8.5, linestyles="dashed", colors="r")
+    plt.text(
+        train_threshold_three_std,
+        8.5,
+        f"train threshold, 3 std above mean @ {train_threshold_three_std:.3f}",
+        size=10,
+        alpha=0.8,
+    )
+
     sns.distplot(
         valid["loss"], kde=True, label="valid", color=sns.color_palette("bright")[1]
     )
+
     sns.distplot(
         test["loss"], kde=True, label="test", color=sns.color_palette("bright")[2]
     )
-    plt.vlines(test_threshold, 0, 4.5, linestyles="dashdot", colors="k")
+    # plt.vlines(test_threshold, 0, 8, linestyles="dashdot", colors="k")
+    # plt.text(
+    #     test_threshold,
+    #     8,
+    #     f"test threshold, 95th Percentile @ {test_threshold:.3f}",
+    #     size=10,
+    #     alpha=0.8,
+    # )
+    plt.vlines(test_threshold_one_std, 0, 7.5, linestyles="dashdot", colors="r")
     plt.text(
-        test_threshold,
-        4.5,
-        f"test threshold, 95th Percentile @ {test_threshold:.3f}",
+        test_threshold_one_std,
+        7.5,
+        f"test threshold, 1 std above mean @ {test_threshold_one_std:.3f}",
         size=10,
         alpha=0.8,
     )
-    plt.vlines(test_threshold_std, 0, 5, linestyles="dashdot", colors="r")
+    plt.vlines(test_threshold_two_std, 0, 7, linestyles="dashdot", colors="r")
     plt.text(
-        test_threshold_std,
-        5,
-        f"test threshold, one std above mean @ {test_threshold_std:.3f}",
+        test_threshold_two_std,
+        7,
+        f"test threshold, 2 std above mean @ {test_threshold_two_std:.3f}",
         size=10,
         alpha=0.8,
     )
+    plt.vlines(test_threshold_three_std, 0, 6.5, linestyles="dashdot", colors="r")
+    plt.text(
+        test_threshold_three_std,
+        6.5,
+        f"test threshold, 3 std above mean @ {test_threshold_three_std:.3f}",
+        size=10,
+        alpha=0.8,
+    )
+
     plt.legend()
     plt.grid(True)
     plt.title(f"Loss Distribution of {model.name}.")
@@ -303,7 +354,7 @@ def loss_dist(model, results_dir, dataset_dir, id):
         f"{id} loss distribution for train, valid, test, took {time_elapsed}(hh:mm:ss.ms)."
     )
 
-    return train_threshold_std
+    return train_threshold_one_std, train_threshold_two_std, train_threshold_three_std
 
 
 def rmse(y_true, y_pred):
