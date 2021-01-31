@@ -65,7 +65,28 @@ directories specified in `config.yaml` for `results` and `log`, respectively.
 
 Other results, such as training, validation and testing data used can be found
 in the dataset directory, or the directory specified in `config.yaml` for
-`dataset`. 
+`dataset`.
+
+### 4. Inference
+
+Similar to the training, run the inference.py script with
+classifier/anomaly_detector argument to infer for classification or anomaly
+detection.
+
+Classification
+```
+python inference.py --model classifier
+```
+
+Anomaly detection
+```
+python inference.py --model anomaly_detector
+```
+
+After inference, you'll find the inference results in the results & logs
+directories, or the directories specified in `config.yaml` for `results` and
+`log`, respectively.
+
 ## Dependencies
 
 This source code was developed on Ubuntu 18.04.3 LTS (Bionic Beaver). 
