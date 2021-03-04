@@ -16,14 +16,7 @@ Linux/Mac Bash:
 python3 -m venv venv
 
 source venv/bin/activate
-pip install -r requirements.txt
-```
-
-Windows Cmd:
-```
-python3 -m venv venv
-
-.\venv\Scripts\activate
+python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -45,7 +38,15 @@ Instead of experimenting on the entire dataset. Run:
 After downloading, you'll find the sample dataset in the sample dataset directory, or the
 directory specified in `config.yaml` for `sample_dataset_dir`.
 
-### 3. Training
+### 3. Preprocessing
+
+Run the preprocess.py script to convert the audio wav files to mel spectrograms
+and save the spectrograms to file as numpy arrays.
+All parameters related to the spectrogram can be changed in the config.
+
+`python preprocess.py`
+
+### 4. Training
 
 Run the train.py script with classifier/anomaly_detector argument to train
 a classifier or anomaly detector.
@@ -67,7 +68,7 @@ Other results, such as training, validation and testing data used can be found
 in the dataset directory, or the directory specified in `config.yaml` for
 `dataset`.
 
-### 4. Inference
+### 5. Inference
 
 Similar to the training, run the inference.py script with
 classifier/anomaly_detector argument to infer for classification or anomaly
