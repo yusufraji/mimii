@@ -1,0 +1,288 @@
+fan_id_00_0dB:
+  roc_auc: 0.482
+  threshold:
+    one_std: 0.6941
+    three_std: 0.8159
+    two_std: 0.755
+fan_id_00_6dB:
+  roc_auc: 0.5042
+  threshold:
+    one_std: 0.5132
+    three_std: 0.6026
+    two_std: 0.5579
+fan_id_00_min6dB:
+  roc_auc: 0.5101
+  threshold:
+    one_std: 0.6356
+    three_std: 0.8223
+    two_std: 0.7289
+fan_id_02_0dB:
+  roc_auc: 0.5795
+  threshold:
+    one_std: 0.7146
+    three_std: 0.8038
+    two_std: 0.7592
+fan_id_02_6dB:
+  roc_auc: 0.7244
+  threshold:
+    one_std: 0.6999
+    three_std: 0.7296
+    two_std: 0.7147
+fan_id_02_min6dB:
+  roc_auc: 0.5196
+  threshold:
+    one_std: 0.7174
+    three_std: 0.8954
+    two_std: 0.8064
+fan_id_04_0dB:
+  roc_auc: 0.5176
+  threshold:
+    one_std: 0.6428
+    three_std: 0.7449
+    two_std: 0.6939
+fan_id_04_6dB:
+  roc_auc: 0.6038
+  threshold:
+    one_std: 0.7221
+    three_std: 0.7555
+    two_std: 0.7388
+fan_id_04_min6dB:
+  roc_auc: 0.4859
+  threshold:
+    one_std: 0.675
+    three_std: 0.8535
+    two_std: 0.7642
+fan_id_06_0dB:
+  roc_auc: 0.5819
+  threshold:
+    one_std: 0.6823
+    three_std: 0.7998
+    two_std: 0.7411
+fan_id_06_6dB:
+  roc_auc: 0.8633
+  threshold:
+    one_std: 0.6499
+    three_std: 0.7133
+    two_std: 0.6816
+fan_id_06_min6dB:
+  roc_auc: 0.5018
+  threshold:
+    one_std: 0.694
+    three_std: 0.8717
+    two_std: 0.7828
+pump_id_00_0dB:
+  roc_auc: 0.494
+  threshold:
+    one_std: 0.7605
+    three_std: 0.8779
+    two_std: 0.8192
+pump_id_00_6dB:
+  roc_auc: 0.5707
+  threshold:
+    one_std: 0.8094
+    three_std: 0.8504
+    two_std: 0.8299
+pump_id_00_min6dB:
+  roc_auc: 0.542
+  threshold:
+    one_std: 0.7805
+    three_std: 0.9732
+    two_std: 0.8768
+pump_id_02_0dB:
+  roc_auc: 0.696
+  threshold:
+    one_std: 0.6479
+    three_std: 0.7467
+    two_std: 0.6973
+pump_id_02_6dB:
+  roc_auc: 0.6759
+  threshold:
+    one_std: 0.668
+    three_std: 0.7188
+    two_std: 0.6934
+pump_id_02_min6dB:
+  roc_auc: 0.4769
+  threshold:
+    one_std: 0.731
+    three_std: 0.9721
+    two_std: 0.8516
+pump_id_04_0dB:
+  roc_auc: 0.665
+  threshold:
+    one_std: 0.8363
+    three_std: 1.0811
+    two_std: 0.9587
+pump_id_04_6dB:
+  roc_auc: 0.825
+  threshold:
+    one_std: 0.8225
+    three_std: 0.9526
+    two_std: 0.8876
+pump_id_04_min6dB:
+  roc_auc: 0.695
+  threshold:
+    one_std: 0.7528
+    three_std: 0.9677
+    two_std: 0.8603
+pump_id_06_0dB:
+  roc_auc: 0.673
+  threshold:
+    one_std: 0.6528
+    three_std: 0.7663
+    two_std: 0.7096
+pump_id_06_6dB:
+  roc_auc: 0.8999
+  threshold:
+    one_std: 0.5867
+    three_std: 0.6483
+    two_std: 0.6175
+pump_id_06_min6dB:
+  roc_auc: 0.4769
+  threshold:
+    one_std: 0.6911
+    three_std: 0.8384
+    two_std: 0.7647
+slider_id_00_0dB:
+  roc_auc: 0.7755
+  threshold:
+    one_std: 0.7363
+    three_std: 0.8887
+    two_std: 0.8125
+slider_id_00_6dB:
+  roc_auc: 0.9148
+  threshold:
+    one_std: 0.6048
+    three_std: 0.7829
+    two_std: 0.6939
+slider_id_00_min6dB:
+  roc_auc: 0.6462
+  threshold:
+    one_std: 0.7089
+    three_std: 0.8952
+    two_std: 0.8021
+slider_id_02_0dB:
+  roc_auc: 0.712
+  threshold:
+    one_std: 0.6705
+    three_std: 0.8362
+    two_std: 0.7534
+slider_id_02_6dB:
+  roc_auc: 0.8101
+  threshold:
+    one_std: 0.6073
+    three_std: 0.7242
+    two_std: 0.6658
+slider_id_02_min6dB:
+  roc_auc: 0.5772
+  threshold:
+    one_std: 0.6572
+    three_std: 0.8671
+    two_std: 0.7621
+slider_id_04_0dB:
+  roc_auc: 0.585
+  threshold:
+    one_std: 0.6927
+    three_std: 0.8515
+    two_std: 0.7721
+slider_id_04_6dB:
+  roc_auc: 0.5183
+  threshold:
+    one_std: 0.7053
+    three_std: 0.8319
+    two_std: 0.7686
+slider_id_04_min6dB:
+  roc_auc: 0.5201
+  threshold:
+    one_std: 0.7383
+    three_std: 0.9253
+    two_std: 0.8318
+slider_id_06_0dB:
+  roc_auc: 0.4782
+  threshold:
+    one_std: 0.7674
+    three_std: 1.0718
+    two_std: 0.9196
+slider_id_06_6dB:
+  roc_auc: 0.4947
+  threshold:
+    one_std: 0.7232
+    three_std: 0.9281
+    two_std: 0.8257
+slider_id_06_min6dB:
+  roc_auc: 0.4391
+  threshold:
+    one_std: 0.7178
+    three_std: 0.8873
+    two_std: 0.8025
+valve_id_00_0dB:
+  roc_auc: 0.4419
+  threshold:
+    one_std: 0.7477
+    three_std: 0.9646
+    two_std: 0.8562
+valve_id_00_6dB:
+  roc_auc: 0.3668
+  threshold:
+    one_std: 0.7415
+    three_std: 0.9282
+    two_std: 0.8348
+valve_id_00_min6dB:
+  roc_auc: 0.4835
+  threshold:
+    one_std: 0.7802
+    three_std: 1.0274
+    two_std: 0.9038
+valve_id_02_0dB:
+  roc_auc: 0.575
+  threshold:
+    one_std: 0.6971
+    three_std: 0.9124
+    two_std: 0.8047
+valve_id_02_6dB:
+  roc_auc: 0.4875
+  threshold:
+    one_std: 0.753
+    three_std: 1.0641
+    two_std: 0.9086
+valve_id_02_min6dB:
+  roc_auc: 0.5125
+  threshold:
+    one_std: 0.7965
+    three_std: 0.9979
+    two_std: 0.8972
+valve_id_04_0dB:
+  roc_auc: 0.525
+  threshold:
+    one_std: 0.7394
+    three_std: 0.9902
+    two_std: 0.8648
+valve_id_04_6dB:
+  roc_auc: 0.4125
+  threshold:
+    one_std: 0.7298
+    three_std: 0.9642
+    two_std: 0.847
+valve_id_04_min6dB:
+  roc_auc: 0.5
+  threshold:
+    one_std: 0.7672
+    three_std: 1.0118
+    two_std: 0.8895
+valve_id_06_0dB:
+  roc_auc: 0.4875
+  threshold:
+    one_std: 0.7713
+    three_std: 1.1036
+    two_std: 0.9375
+valve_id_06_6dB:
+  roc_auc: 0.5083
+  threshold:
+    one_std: 0.782
+    three_std: 1.0654
+    two_std: 0.9237
+valve_id_06_min6dB:
+  roc_auc: 0.4667
+  threshold:
+    one_std: 0.746
+    three_std: 0.9533
+    two_std: 0.8496

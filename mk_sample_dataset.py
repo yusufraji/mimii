@@ -13,7 +13,12 @@ np.random.seed(42)
 # reads the audio from file, and write it to the sample_dataset folder
 # to create the write the sample dataset to file
 def create_dataset(file_path, dataset_dir):
+    """loads the audio (sample set) from full dataset directory and writes them to sample dataset directory
 
+    Args:
+        file_path (path): sample dataset directory
+        dataset_dir (path): full dataset directory
+    """
     y, sr = librosa.load(file_path, sr=None)
     out_path = dataset_dir / Path(*list(file_path.parts[-5:]))
     Path.mkdir(out_path.parent, parents=True, exist_ok=True)
@@ -38,7 +43,6 @@ Path.mkdir(
 Path.mkdir(
     Path.cwd() / config["sample_dataset_dir"] / "6db", parents=True, exist_ok=True
 )
-
 
 # collect and save sample dataset
 # write the machine type, id, and file path to dataframe
@@ -75,9 +79,6 @@ for db in tqdm(db, desc="writing db files.", leave=False):
     for machine in tqdm(machine_type, desc="writing machine files.", leave=False):
         for id in tqdm(machine_id, desc="writing machine id files.", leave=False):
             n = np.random.randint(15, 50)  # to make the data imbalance
-            # filter0 = ['db'] == db
-            # filter1 = ['machine_type'] == machine
-            # filter2 = ['machine_id'] == id
             sample_data = data.loc[data["db"] == db]
             sample_data = sample_data.loc[sample_data["machine_type"] == machine]
             sample_data = sample_data.loc[sample_data["machine_id"] == id]

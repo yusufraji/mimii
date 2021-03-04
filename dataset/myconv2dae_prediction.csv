@@ -1,0 +1,4 @@
+X_test,y_test,loss
+/data/home/mimii/dataset/min6dB/pump/id_06/normal/00000003.npy,/data/home/mimii/dataset/min6dB/pump/id_06/normal/00000003.npy,0.009087886661291122
+/data/home/mimii/dataset/6dB/slider/id_02/normal/00000093.npy,/data/home/mimii/dataset/6dB/slider/id_02/normal/00000093.npy,0.008749893866479397
+/data/home/mimii/dataset/6dB/fan/id_06/normal/00000353.npy,/data/home/mimii/dataset/6dB/fan/id_06/normal/00000353.npy,0.009551436640322208
